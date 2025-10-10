@@ -1,10 +1,41 @@
+# Serenique Cloud Server .gitignore
+
+# Vercel
 .vercel/
+
+# Virtual Environments
 .venv/
 venv/
+env/
+ENV/
+
+# Python
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
 .Python
-.DS_Store
+*.so
+build/
+dist/
+*.egg-info/
+
+# Environment Variables
+.env
 .env*
+!.env.example
+
+
+# System Files
+.DS_Store
+*~
+
+# Logs
+*.log
+logs/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
