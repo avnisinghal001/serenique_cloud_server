@@ -17,10 +17,11 @@ from typing import Dict, List, Optional, Any
 from datetime import datetime
 from enum import Enum
 from pydantic import BaseModel, Field
-from langchain_openai import ChatOpenAI
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.output_parsers import JsonOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnablePassthrough
+import json
 
 
 # ============================================================================
@@ -215,29 +216,29 @@ class UserPersona(BaseModel):
 
 class LangChainPersonaArchitect:
     """
-    LangChain-based persona architect using OpenRouter models
+    LangChain-based persona architect using Google Gemini 2.0 Flash
     for intelligent quiz analysis and persona generation.
     """
     
     def __init__(
         self,
-        openrouter_api_key: str,
-        model_name: str = "anthropic/claude-3.5-sonnet",
+        google_api_key: str,
+        model_name: str = "gemini-2.0-flash-exp",
         temperature: float = 0.7
     ):
         """
-        Initialize LangChain persona architect.
+        Initialize LangChain persona architect with Gemini.
         
         Args:
-            openrouter_api_key: API key for OpenRouter
-            model_name: Model to use (e.g., "anthropic/claude-3.5-sonnet")
+            google_api_key: Google API key for Gemini
+            model_name: Gemini model to use (default: gemini-2.0-flash-exp)
             temperature: Model temperature (0.0-1.0)
         """
-        self.llm = ChatOpenAI(
+        self.llm = ChatGoogleGenerativeAI(
             model=model_name,
             temperature=temperature,
-            openai_api_key=openrouter_api_key,
-            openai_api_base="https://openrouter.ai/api/v1",
+            google_api_key=google_api_key,
+            convert_system_message_to_human=True
         )
         
         # Set up output parser for PersonalityProfile
@@ -412,19 +413,26 @@ The system prompt should be comprehensive (300-500 words) and include:
         action: Dict[str, Any]
     ) -> LiveUserState:
         """
-        Update live user state based on app action.
+        Update live user state based on wellness tool actions.
+        
+        Supported action types:
+        - chat_message: General chat interaction
+        - tool_use: Generic tool usage
+        - sleep_log: Sleep tracking
+        - breathing_exercise: From breathing_service (4-7-8, Diaphragmatic, Box, etc.)
+        - grounding_technique: From grounding_service (5-4-3-2-1, Body Scan, etc.)
+        - mindfulness_meditation: From mindfulness_service (Body Scan, Mindful Walking, Mindful Eating)
+        - body_relaxation: From body_relaxation_service (Body Mapping, Wave Breathing, Self-Hug)
         
         Args:
             current_state: Current LiveUserState
-            action: Dictionary describing the action
-                   e.g., {"type": "chat_message", "content": "...", "mood": "anxious"}
-                   e.g., {"type": "tool_use", "tool_name": "breathing_exercise"}
-                   e.g., {"type": "sleep_log", "hours": 6, "quality": "poor"}
+            action: Dictionary with "type" and "content" (exercise data from Firebase)
         
         Returns:
             Updated LiveUserState
         """
-        action_type = action.get("type", "unknown")
+        action_type = action.get("type", "unknown").lower()
+        content = action.get("content", {})
         
         # Update based on action type
         if action_type == "chat_message":
@@ -438,7 +446,7 @@ The system prompt should be comprehensive (300-500 words) and include:
                 except ValueError:
                     pass  # Invalid mood, keep current
             
-            # Extract recent stressors from content (simplified)
+            # Extract recent stressors from content
             if "content" in action and "stress" in action["content"].lower():
                 stressor = action.get("stressor_detected", "general stress")
                 if stressor not in current_state.recent_stressors:
@@ -468,11 +476,334 @@ The system prompt should be comprehensive (300-500 words) and include:
             if hours < 5 or quality in ["poor", "very poor"]:
                 current_state.needs_check_in = True
         
+        # ====================================================================
+        # BREATHING EXERCISES (breathing_service.dart)
+        # ====================================================================
+        elif action_type == "breathing_exercise":
+            current_state.tool_usage_count += 1
+            current_state.last_interaction = "breathing_exercise"
+            
+            # Update mood from afterMood
+            after_mood = content.get("afterMood", "").lower()
+            if after_mood:
+                try:
+                    current_state.current_mood = Mood(after_mood)
+                except ValueError:
+                    pass
+            
+            # Track technique as coping success
+            technique = content.get("technique", "Breathing Exercise")
+            mood_improvement = content.get("moodImprovement", "")
+            
+            if mood_improvement == "Improved":
+                success = f"{technique} - Improved mood"
+                if success not in current_state.coping_successes:
+                    current_state.coping_successes.append(success)
+                    if len(current_state.coping_successes) > 5:
+                        current_state.coping_successes.pop(0)
+                current_state.needs_check_in = False
+            
+            # Check if user struggled (needs support)
+            session_quality = content.get("sessionQuality", "")
+            completed = content.get("completed", False)
+            paused_times = content.get("pausedTimes", 0)
+            
+            if session_quality == "Needs Improvement" or (not completed and paused_times > 3):
+                current_state.needs_check_in = True
+                # Track difficulty as potential stressor
+                stressor = f"Difficulty with {technique}"
+                if stressor not in current_state.recent_stressors:
+                    current_state.recent_stressors.append(stressor)
+                    if len(current_state.recent_stressors) > 5:
+                        current_state.recent_stressors.pop(0)
+        
+        # ====================================================================
+        # GROUNDING TECHNIQUES (grounding_service.dart)
+        # ====================================================================
+        elif action_type == "grounding_technique":
+            current_state.tool_usage_count += 1
+            current_state.last_interaction = "grounding_technique"
+            
+            # Update mood
+            after_mood = content.get("afterMood", "").lower()
+            if after_mood:
+                try:
+                    current_state.current_mood = Mood(after_mood)
+                except ValueError:
+                    pass
+            
+            # Track technique
+            technique_used = content.get("techniqueUsed", "Grounding Technique")
+            mood_improvement = content.get("moodImprovement", "")
+            
+            if mood_improvement == "Improved":
+                success = f"{technique_used} - Helped with grounding"
+                if success not in current_state.coping_successes:
+                    current_state.coping_successes.append(success)
+                    if len(current_state.coping_successes) > 5:
+                        current_state.coping_successes.pop(0)
+                current_state.needs_check_in = False
+            
+            # Check stress levels and environment
+            stress_level = content.get("currentStressLevel", "")
+            if stress_level in ["High", "Very High"]:
+                current_state.needs_check_in = True
+                environment = content.get("environmentType", "general situation")
+                stressor = f"High stress in {environment}"
+                if stressor not in current_state.recent_stressors:
+                    current_state.recent_stressors.append(stressor)
+                    if len(current_state.recent_stressors) > 5:
+                        current_state.recent_stressors.pop(0)
+        
+        # ====================================================================
+        # MINDFULNESS MEDITATION (mindfulness_service.dart)
+        # ====================================================================
+        elif action_type == "mindfulness_meditation":
+            current_state.tool_usage_count += 1
+            current_state.last_interaction = "mindfulness_meditation"
+            
+            # Update mood
+            after_mood = content.get("moodAfter", "").lower()
+            if after_mood:
+                try:
+                    current_state.current_mood = Mood(after_mood)
+                except ValueError:
+                    pass
+            
+            # Track technique
+            technique_used = content.get("techniqueUsed", "Meditation")
+            mood_improvement = content.get("moodImprovement", "")
+            session_quality = content.get("sessionQuality", "")
+            
+            if mood_improvement == "Improved" or session_quality == "Excellent":
+                success = f"{technique_used} meditation"
+                if success not in current_state.coping_successes:
+                    current_state.coping_successes.append(success)
+                    if len(current_state.coping_successes) > 5:
+                        current_state.coping_successes.pop(0)
+                current_state.needs_check_in = False
+            
+            # Check for struggles
+            completed = content.get("completed", False)
+            pause_count = content.get("pauseCount", 0)
+            completion_rate = float(content.get("completionRate", 100))
+            
+            if not completed and pause_count > 2 and completion_rate < 50:
+                current_state.needs_check_in = True
+                stressor = f"Difficulty maintaining focus during {technique_used}"
+                if stressor not in current_state.recent_stressors:
+                    current_state.recent_stressors.append(stressor)
+                    if len(current_state.recent_stressors) > 5:
+                        current_state.recent_stressors.pop(0)
+        
+        # ====================================================================
+        # BODY RELAXATION (body_relaxation_service.dart)
+        # ====================================================================
+        elif action_type == "body_relaxation":
+            current_state.tool_usage_count += 1
+            current_state.last_interaction = "body_relaxation"
+            
+            # Update mood
+            after_mood = content.get("moodAfter", "").lower()
+            if after_mood:
+                try:
+                    current_state.current_mood = Mood(after_mood)
+                except ValueError:
+                    pass
+            
+            # Track tool
+            tool_used = content.get("toolUsed", "Body Relaxation")
+            mood_improvement = content.get("moodImprovement", "")
+            session_quality = content.get("sessionQuality", "")
+            
+            if mood_improvement == "Improved" or session_quality == "Excellent":
+                success = f"{tool_used}"
+                if success not in current_state.coping_successes:
+                    current_state.coping_successes.append(success)
+                    if len(current_state.coping_successes) > 5:
+                        current_state.coping_successes.pop(0)
+                current_state.needs_check_in = False
+            
+            # Check for body tension issues (Body Mapping specific)
+            if tool_used == "Body Mapping":
+                has_very_tense = content.get("hasVeryTenseTensionAreas", False)
+                if has_very_tense:
+                    stressor = "Significant body tension detected"
+                    if stressor not in current_state.recent_stressors:
+                        current_state.recent_stressors.append(stressor)
+                        if len(current_state.recent_stressors) > 5:
+                            current_state.recent_stressors.pop(0)
+        
         # Update timestamp
         current_state.last_interaction_timestamp = datetime.utcnow().isoformat()
         current_state.last_updated = datetime.utcnow().isoformat()
         
         return current_state
+    
+    def chat(
+        self,
+        user_message: str,
+        persona: UserPersona,
+        chat_history: Optional[List[Dict[str, str]]] = None,
+        key_insights: Optional[List[Dict[str, Any]]] = None
+    ) -> str:
+        """
+        Generate AI response based on user's persona, chat history, and key insights.
+        
+        Uses the user's PersonalityProfile (quiz-based static data),
+        LiveUserState (dynamic interaction data), recent chat history,
+        and key insights (important past moments) to personalize responses.
+        
+        Args:
+            user_message: The user's current message
+            persona: Complete UserPersona (personality_profile + live_user_state)
+            chat_history: Recent conversation (list of {"role": "user"|"assistant", "content": "..."})
+            key_insights: Important past moments (list of {"type": "stressor", "content": "...", ...})
+        
+        Returns:
+            AI assistant's response as string
+        """
+        chat_history = chat_history or []
+        key_insights = key_insights or []
+        
+        # Build context from persona
+        profile = persona.personality_profile
+        state = persona.live_user_state
+        
+        # Extract quiz data context if available
+        quiz_context = ""
+        if hasattr(persona, 'quiz_data') and persona.quiz_data:
+            quiz_context = f"\nOriginal Quiz Responses: {json.dumps(persona.quiz_data, indent=2)}\n"
+        
+        # 🧠 Build key insights context (long-term memory)
+        insights_context = ""
+        if key_insights:
+            insights_context = "\n\n📌 IMPORTANT PAST MOMENTS (Long-term Memory):\n"
+            insights_context += "These are key moments from past conversations that provide important context:\n"
+            for insight in key_insights:
+                insight_type = insight.get('type', 'note')
+                content = insight.get('content', '')
+                timestamp = insight.get('timestamp', '')
+                original = insight.get('original_message', '')[:80]
+                
+                # Format timestamp nicely
+                try:
+                    dt = datetime.fromisoformat(timestamp)
+                    time_str = dt.strftime("%b %d, %I:%M %p")
+                except:
+                    time_str = "Recently"
+                
+                insights_context += f"  • [{insight_type.upper()}] {content}\n"
+                insights_context += f"    Context: \"{original}...\" ({time_str})\n"
+            
+            insights_context += "\n⚠️ IMPORTANT: Reference these past moments naturally when relevant:\n"
+            insights_context += "  - \"I remember you mentioned...\"\n"
+            insights_context += "  - \"Yesterday you told me about...\"\n"
+            insights_context += "  - \"You've been working through [situation]...\"\n"
+            insights_context += "  - \"That [stressor] you mentioned before...\"\n"
+        
+        # Build comprehensive system prompt with persona context
+        system_prompt = f"""You are Serenique, a calm, gentle, and deeply empathetic AI mental wellness companion for college students.
+
+CORE IDENTITY & APPROACH:
+You embody peace, understanding, and warmth. Your presence should feel like a safe harbor - calm waters where students can rest and find clarity. Speak softly but with genuine care. You are not here to fix, but to support, listen, and gently guide.
+
+COMMUNICATION STYLE FOR MENTAL HEALTH:
+- Use soft, calming language with a peaceful tone
+- Speak slowly and mindfully (avoid rushing or overwhelming)
+- Validate emotions before offering suggestions
+- Use gentle encouragement, not pressure
+- Offer comfort and understanding above all else
+- Pause to acknowledge what they're feeling
+- Use phrases like: "I hear you...", "That sounds really difficult...", "It's okay to feel this way...", "Take your time..."
+- Avoid exclamation marks or overly enthusiastic tone (this can feel invalidating)
+- Be present, patient, and non-judgmental
+
+{profile.chatbot_system_prompt}
+
+USER PERSONALITY PROFILE (from quiz analysis):
+- Communication Style: {profile.communication_style.value}
+- Primary Stressor: {profile.primary_stressor.value}
+- Social Profile: {profile.social_profile.value}
+- Coping Mechanism: {profile.coping_mechanism.value}
+- Overall Stress Level: {profile.stress_level.value}
+
+Strengths:
+{chr(10).join('- ' + s for s in profile.strengths)}
+
+Areas Needing Support:
+{chr(10).join('- ' + v for v in profile.vulnerabilities)}
+
+Recommended Therapeutic Approach:
+{profile.recommended_approach}
+
+Chatbot Tone: {profile.chatbot_tone}
+Chatbot Methodology: {profile.chatbot_methodology}
+
+CURRENT LIVE STATE (updated from app interactions):
+- Current Mood: {state.current_mood.value}
+- Last Interaction: {state.last_interaction}
+- Last Interaction Time: {state.last_interaction_timestamp}
+- Chat Messages: {state.chat_message_count}
+- Wellness Tools Used: {state.tool_usage_count}
+- Sleep Logs: {state.sleep_logs_count}
+- Recent Stressors: {', '.join(state.recent_stressors) if state.recent_stressors else 'None identified yet'}
+- Coping Successes: {', '.join(state.coping_successes) if state.coping_successes else 'Building coping strategies'}
+- Needs Check-in: {'Yes - User may need extra support' if state.needs_check_in else 'No - User seems stable'}
+{quiz_context}{insights_context}
+
+IMPORTANT INSTRUCTIONS:
+1. Maintain a calm, peaceful, soothing presence at all times
+2. Use gentle, non-pressuring language appropriate for mental health support
+3. Validate feelings first ("I hear you...", "That sounds really hard...")
+4. Reference recent stressors and coping successes with gentle acknowledgment
+5. Adapt tone to current mood - be extra gentle if anxious/stressed/sad
+6. If needs_check_in is True, offer support with warmth, not urgency
+7. Celebrate small wins softly ("That's a step forward...", "I'm glad that helped...")
+8. Keep responses calm and measured (2-3 sentences, pause between thoughts)
+9. If user mentions crisis/self-harm, provide resources with care and concern
+10. Remember: This is a mental health app - every word matters. Be the calm in their storm.
+
+Remember: You're a safe space. Your role is to listen deeply, validate authentically, and guide gently. Speak as if you're sitting beside someone who needs rest, understanding, and peace."""
+
+        # Build conversation history for context
+        messages = [{"role": "system", "content": system_prompt}]
+        
+        # ⚡ OPTIMIZED: Use all messages (already limited to 10 by cache)
+        # No need to slice again - the optimized method already returns only 10
+        for msg in chat_history:  # Use all provided messages
+            messages.append({
+                "role": msg["role"],
+                "content": msg["content"]
+            })
+        
+        # Add current user message
+        messages.append({"role": "user", "content": user_message})
+        
+        # Generate response using LangChain
+        try:
+            # Create prompt template for chat
+            chat_prompt = ChatPromptTemplate.from_messages([
+                ("system", "{system_prompt}"),
+                *[("human" if msg["role"] == "user" else "assistant", msg["content"]) 
+                  for msg in messages[1:]]  # Skip system message as it's already in template
+            ])
+            
+            # Create chain and invoke
+            chain = chat_prompt | self.llm
+            response = chain.invoke({"system_prompt": system_prompt})
+            
+            # Extract text content
+            if hasattr(response, 'content'):
+                print(response.content);
+                return response.content
+            else:
+                return str(response)
+            
+        except Exception as e:
+            print(f"❌ Error generating chat response: {e}")
+            # Fallback response (calm and supportive)
+            return "I'm here with you. Take a moment... when you're ready, I'm listening."
 
 
 # ============================================================================

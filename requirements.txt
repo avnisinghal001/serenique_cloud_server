@@ -7,8 +7,11 @@ pydantic>=2.4.0
 
 # LangChain for AI-powered persona generation
 langchain>=0.1.0
-langchain-openai>=0.0.2
+langchain-google-genai>=1.0.0
 langchain-core>=0.1.0
+
+# Google Generative AI (Gemini)
+google-generativeai>=0.3.0
 
 # Firebase Admin SDK for Firestore
 firebase-admin>=6.2.0
