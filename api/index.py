@@ -14,7 +14,7 @@ We use api/index.py as the entry point for better organization.
 """
 
 # Import the FastAPI app instance from main.py
-from main import app
+from serenique_cloud_server.app import app
 
 # Vercel will automatically detect and use this 'app' instance
 # No additional ASGI configuration needed
