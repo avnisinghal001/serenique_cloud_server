@@ -25,6 +25,11 @@ dist/
 .env*
 !.env.example
 
+# Firebase Admin Credentials (CRITICAL)
+*firebase-adminsdk*.json
+serenique-*.json
+credentials.json
+serviceAccountKey.json
 
 # System Files
 .DS_Store

@@ -1,1 +1,67 @@
-    
+# Vercel Ignore File
+# Prevents sensitive and unnecessary files from being deployed
+
+# Firebase Admin Credentials (CRITICAL - use environment variables instead)
+*firebase-adminsdk*.json
+serenique-*.json
+credentials.json
+serviceAccountKey.json
+
+# Test Files
+test_*.py
+*_test.py
+tests/
+
+# Documentation (keep README.md only)
+*.md
+!README.md
+
+# Development Tools
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Python Cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.coverage
+
+# Virtual Environments
+venv/
+.venv/
+env/
+ENV/
+
+# Git
+.git/
+.gitignore
+
+# Environment Files
+.env
+.env.*
+!.env.example
+
+# Build Files
+build/
+dist/
+*.egg-info/
+
+# Scripts (not needed in production)
+setup.bat
+setup.sh
+run.bat
+run.sh
+minify_firebase_json.ps1
+
+# System Files
+.DS_Store
+Thumbs.db
+*~
+
+# Logs
+*.log
+logs/
