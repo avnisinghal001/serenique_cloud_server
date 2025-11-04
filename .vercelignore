@@ -1,12 +1,6 @@
 # Vercel Ignore File
 # Prevents sensitive and unnecessary files from being deployed
 
-# Firebase Admin Credentials (CRITICAL - use environment variables instead)
-*firebase-adminsdk*.json
-serenique-*.json
-credentials.json
-serviceAccountKey.json
-
 # Test Files
 test_*.py
 *_test.py
