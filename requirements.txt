@@ -1,23 +1,20 @@
 # FastAPI Framework
-fastapi
-uvicorn[standard]
-uvicorn
+fastapi>=0.104.0
+uvicorn>=0.24.0
+
 # Pydantic for data validation
-pydantic
+pydantic>=2.4.0
 
 # LangChain for AI-powered persona generation
-langchain
-langchain-google-genai
-langchain-core
+langchain>=0.1.0
+langchain-google-genai>=1.0.0
+langchain-core>=0.1.0
 
 # Google Generative AI (Gemini)
-google-generativeai
+google-generativeai>=0.3.0
 
 # Firebase Admin SDK for Firestore
-firebase-admin
+firebase-admin>=6.2.0
 
 # Date/time utilities
-python-dateutil
-
-# ASGI server for production
-mangum
+python-dateutil>=2.8.2
