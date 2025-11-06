@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException
+import asyncio
 from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -6,6 +7,7 @@ from typing import Optional, Dict, Any
 from datetime import datetime
 import os
 import json
+from dotenv import load_dotenv
 from langchain_persona_architect import (
     LangChainPersonaArchitect,
     UserPersona,
@@ -13,6 +15,9 @@ from langchain_persona_architect import (
 )
 from firebase_service import firebase_service
 from insight_extractor import InsightExtractor
+
+# Load environment variables from .env file
+load_dotenv()
 
 
 app = FastAPI(
@@ -29,27 +34,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# Load Google API credentials from credentials.json
-CREDENTIALS_PATH = os.path.join(os.path.dirname(__file__), "credentials.json")
-
-def load_google_credentials():
-    """Load Google API credentials from credentials.json file"""
-    try:
-        with open(CREDENTIALS_PATH, 'r') as f:
-            creds = json.load(f)
-
-            # For Gemini API, we need to use the project_id to construct the API key
-            # or use a separate API key. For now, let's check for GOOGLE_API_KEY in env
-            return creds
-    except FileNotFoundError:
-        print(f"⚠️  WARNING: credentials.json not found at {CREDENTIALS_PATH}")
-        return None
-    except json.JSONDecodeError:
-        print("⚠️  WARNING: credentials.json is not valid JSON")
-        return None
-
-credentials = load_google_credentials()
 
 # Get Google API key from environment (Gemini API key)
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY", "")
@@ -190,33 +174,45 @@ async def generate_persona(request: GeneratePersonaRequest):
 async def get_persona(user_id: str):
     """
     Retrieve existing persona for a user.
-    
     Used by Flutter app to load persona when initializing chat.
     """
+    print(f"⚙️ Fetching persona for {user_id}")
+
     try:
-        persona = firebase_service.get_user_persona(user_id)
+        # Test Firebase connection first
+        print(f"🔍 Testing Firebase connection...")
         
+        loop = asyncio.get_event_loop()
+        persona = await asyncio.wait_for(
+            loop.run_in_executor(None, firebase_service.get_user_persona, user_id),
+            timeout=30  # Increased from 15 to 30 seconds
+        )
+        
+        print(f"✅ Firebase query completed")
+
         if not persona:
             raise HTTPException(
                 status_code=404,
                 detail=f"No persona found for user {user_id}"
             )
-        
-        return PersonaResponse(
-            success=True,
-            user_persona=persona.model_dump(),
-            message="Persona retrieved successfully"
-        )
-        
+
+        return {
+            "success": True,
+            "user_persona": persona.model_dump() if hasattr(persona, "model_dump") else persona,
+            "message": "Persona retrieved successfully"
+        }
+
     except HTTPException:
         raise
     except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
         print(f"❌ Error retrieving persona: {e}")
+        print(f"❌ Full traceback:\n{error_details}")
         raise HTTPException(
             status_code=500,
             detail=f"Failed to retrieve persona: {str(e)}"
         )
-
 
 # ============================================================================
 # LIVE STATE UPDATE ENDPOINT
@@ -606,17 +602,12 @@ def read_root():
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Vercel + FastAPI</title>
+        <title>Serenique + Gemini 2.0</title>
         <link rel="icon" type="image/x-icon" href="/favicon.ico">
         <style>
-            * {
-                margin: 0;
-                padding: 0;
-                box-sizing: border-box;
-            }
-
+            * { margin: 0; padding: 0; box-sizing: border-box; }
             body {
-                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
                 background-color: #000000;
                 color: #ffffff;
                 line-height: 1.6;
@@ -624,12 +615,7 @@ def read_root():
                 display: flex;
                 flex-direction: column;
             }
-
-            header {
-                border-bottom: 1px solid #333333;
-                padding: 0;
-            }
-
+            header { border-bottom: 1px solid #333333; padding: 0; }
             nav {
                 max-width: 1200px;
                 margin: 0 auto;
@@ -638,20 +624,13 @@ def read_root():
                 padding: 1rem 2rem;
                 gap: 2rem;
             }
-
             .logo {
                 font-size: 1.25rem;
                 font-weight: 600;
                 color: #ffffff;
                 text-decoration: none;
             }
-
-            .nav-links {
-                display: flex;
-                gap: 1.5rem;
-                margin-left: auto;
-            }
-
+            .nav-links { display: flex; gap: 1.5rem; margin-left: auto; }
             .nav-links a {
                 text-decoration: none;
                 color: #888888;
@@ -661,12 +640,7 @@ def read_root():
                 font-size: 0.875rem;
                 font-weight: 500;
             }
-
-            .nav-links a:hover {
-                color: #ffffff;
-                background-color: #111111;
-            }
-
+            .nav-links a:hover { color: #ffffff; background-color: #111111; }
             main {
                 flex: 1;
                 max-width: 1200px;
@@ -677,28 +651,6 @@ def read_root():
                 align-items: center;
                 text-align: center;
             }
-
-            .hero {
-                margin-bottom: 3rem;
-            }
-
-            .hero-code {
-                margin-top: 2rem;
-                width: 100%;
-                max-width: 900px;
-                display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            }
-
-            .hero-code pre {
-                background-color: #0a0a0a;
-                border: 1px solid #333333;
-                border-radius: 8px;
-                padding: 1.5rem;
-                text-align: left;
-                grid-column: 1 / -1;
-            }
-
             h1 {
                 font-size: 3rem;
                 font-weight: 700;
@@ -708,22 +660,20 @@ def read_root():
                 -webkit-text-fill-color: transparent;
                 background-clip: text;
             }
-
             .subtitle {
                 font-size: 1.25rem;
                 color: #888888;
                 margin-bottom: 2rem;
                 max-width: 600px;
             }
-
             .cards {
                 display: grid;
                 grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
                 gap: 1.5rem;
                 width: 100%;
                 max-width: 900px;
+                margin-top: 2rem;
             }
-
             .card {
                 background-color: #111111;
                 border: 1px solid #333333;
@@ -732,25 +682,21 @@ def read_root():
                 transition: all 0.2s ease;
                 text-align: left;
             }
-
             .card:hover {
                 border-color: #555555;
                 transform: translateY(-2px);
             }
-
             .card h3 {
                 font-size: 1.125rem;
                 font-weight: 600;
                 margin-bottom: 0.5rem;
                 color: #ffffff;
             }
-
             .card p {
                 color: #888888;
                 font-size: 0.875rem;
                 margin-bottom: 1rem;
             }
-
             .card a {
                 display: inline-flex;
                 align-items: center;
@@ -764,104 +710,31 @@ def read_root():
                 border: 1px solid #333333;
                 transition: all 0.2s ease;
             }
-
             .card a:hover {
                 background-color: #333333;
                 border-color: #555555;
             }
-
-            .status-badge {
-                display: inline-flex;
-                align-items: center;
-                gap: 0.5rem;
-                background-color: #0070f3;
-                color: #ffffff;
-                padding: 0.25rem 0.75rem;
-                border-radius: 20px;
-                font-size: 0.75rem;
-                font-weight: 500;
-                margin-bottom: 2rem;
-            }
-
-            .status-dot {
-                width: 6px;
-                height: 6px;
-                background-color: #00ff88;
-                border-radius: 50%;
-            }
-
             pre {
                 background-color: #0a0a0a;
                 border: 1px solid #333333;
-                border-radius: 6px;
-                padding: 1rem;
+                border-radius: 8px;
+                padding: 1.5rem;
                 overflow-x: auto;
-                margin: 0;
+                text-align: left;
+                margin: 2rem 0;
+                max-width: 600px;
             }
-
             code {
-                font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+                font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', monospace;
                 font-size: 0.85rem;
                 line-height: 1.5;
                 color: #ffffff;
             }
-
-            /* Syntax highlighting */
-            .keyword {
-                color: #ff79c6;
-            }
-
-            .string {
-                color: #f1fa8c;
-            }
-
-            .function {
-                color: #50fa7b;
-            }
-
-            .class {
-                color: #8be9fd;
-            }
-
-            .module {
-                color: #8be9fd;
-            }
-
-            .variable {
-                color: #f8f8f2;
-            }
-
-            .decorator {
-                color: #ffb86c;
-            }
-
-            @media (max-width: 768px) {
-                nav {
-                    padding: 1rem;
-                    flex-direction: column;
-                    gap: 1rem;
-                }
-
-                .nav-links {
-                    margin-left: 0;
-                }
-
-                main {
-                    padding: 2rem 1rem;
-                }
-
-                h1 {
-                    font-size: 2rem;
-                }
-
-                .hero-code {
-                    grid-template-columns: 1fr;
-                }
-
-                .cards {
-                    grid-template-columns: 1fr;
-                }
-            }
+            .keyword { color: #ff79c6; }
+            .string { color: #f1fa8c; }
+            .function { color: #50fa7b; }
+            .class { color: #8be9fd; }
+            .module { color: #8be9fd; }
         </style>
     </head>
     <body>
@@ -875,35 +748,26 @@ def read_root():
             </nav>
         </header>
         <main>
-            <div class="hero">
-                <h1>Serenique + Gemini 2.0 Flash</h1>
-                <div class="hero-code">
-                    <pre><code><span class="keyword">from</span> <span class="module">langchain_google_genai</span> <span class="keyword">import</span> <span class="class">ChatGoogleGenerativeAI</span>
+            <h1>Serenique + Gemini 2.0 Flash</h1>
+            <p class="subtitle">AI-powered mental wellness chatbot with personalized personas</p>
+            
+            <pre><code><span class="keyword">from</span> <span class="module">langchain_google_genai</span> <span class="keyword">import</span> <span class="class">ChatGoogleGenerativeAI</span>
 
-<span class="variable">llm</span> = <span class="class">ChatGoogleGenerativeAI</span>(
-    <span class="variable">model</span>=<span class="string">"gemini-2.0-flash-exp"</span>,
-    <span class="variable">temperature</span>=<span class="number">0.7</span>
-)
-
-<span class="decorator">@app.post</span>(<span class="string">"/api/persona/generate"</span>)
-<span class="keyword">async def</span> <span class="function">generate_persona</span>():
-    <span class="keyword">return</span> persona_architect.<span class="function">generate_from_quiz</span>()</code></pre>
-                </div>
-            </div>
+<span class="decorator">@app.post</span>(<span class="string">"/api/chat"</span>)
+<span class="keyword">async def</span> <span class="function">chat</span>():
+    <span class="keyword">return</span> persona_architect.<span class="function">chat</span>()</code></pre>
 
             <div class="cards">
                 <div class="card">
                     <h3>Interactive API Docs</h3>
-                    <p>Explore AI persona generation endpoints with Swagger UI. Test Gemini-powered analysis in real-time.</p>
+                    <p>Explore AI persona generation endpoints with Swagger UI.</p>
                     <a href="/docs">Open Swagger UI →</a>
                 </div>
-
                 <div class="card">
                     <h3>Health Check</h3>
-                    <p>Monitor API health and Gemini configuration status. Check Firebase connectivity and service version.</p>
+                    <p>Monitor API health and Gemini configuration status.</p>
                     <a href="/api/health">Check Health →</a>
                 </div>
-
             </div>
         </main>
     </body>

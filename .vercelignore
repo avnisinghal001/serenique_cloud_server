@@ -1,61 +1,40 @@
-# Vercel Ignore File
-# Prevents sensitive and unnecessary files from being deployed
-
-# Test Files
-test_*.py
-*_test.py
-tests/
-
-# Documentation (keep README.md only)
-*.md
-!README.md
-
-# Development Tools
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# Python Cache
+# Ignore development and local files
+vc/
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
+.Python
+*.so
+*.egg
+*.egg-info
+dist/
+build/
 .pytest_cache/
 .coverage
+htmlcov/
 
-# Virtual Environments
-venv/
-.venv/
-env/
-ENV/
+# Ignore local environment files
+.env.local
+.env.*.local
 
-# Git
+# Ignore Git
 .git/
 .gitignore
 
-# Environment Files
-.env
-.env.*
-!.env.example
-
-# Build Files
-build/
-dist/
-*.egg-info/
-
-# Scripts (not needed in production)
-setup.bat
-setup.sh
-run.bat
-run.sh
-minify_firebase_json.ps1
-
-# System Files
-.DS_Store
-Thumbs.db
+# Ignore IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
 *~
 
-# Logs
-*.log
-logs/
+# Keep only essential files for deployment
+!api/
+!main.py
+!firebase_service.py
+!langchain_persona_architect.py
+!insight_extractor.py
+!serenique-avni-firebase-adminsdk-fbsvc-40c2275922.json
+!requirements.txt
+!vercel.json

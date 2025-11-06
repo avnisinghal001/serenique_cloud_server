@@ -16,7 +16,7 @@ from langchain_persona_architect import UserPersona, LiveUserState
 
 class FirebaseService:
     """Service class for Firebase Firestore operations"""
-    
+ 
     _instance = None
     _initialized = False
     
@@ -39,68 +39,69 @@ class FirebaseService:
             FirebaseService._initialized = True
     
     def _initialize_firebase(self):
-        """Initialize Firebase Admin SDK with credentials"""
+        """Initialize Firebase Admin SDK from FIREBASE_CREDENTIALS environment variable"""
         
-        # Try multiple methods to get credentials
-        # Method 1: Check for FIREBASE_CREDENTIALS environment variable (JSON string)
-        firebase_creds_json = os.getenv("FIREBASE_CREDENTIALS")
-        
-        if firebase_creds_json:
-            try:
-                cred_dict = json.loads(firebase_creds_json)
-                cred = credentials.Certificate(cred_dict)
-                firebase_admin.initialize_app(cred)
-                print("✅ Firebase initialized from FIREBASE_CREDENTIALS env variable")
-                return
-            except Exception as e:
-                print(f"⚠️  Failed to initialize from FIREBASE_CREDENTIALS: {e}")
-        
-        # Method 2: Check for GOOGLE_APPLICATION_CREDENTIALS (file path)
-        google_app_creds = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
-        
-        if google_app_creds and os.path.exists(google_app_creds):
-            try:
-                cred = credentials.Certificate(google_app_creds)
-                firebase_admin.initialize_app(cred)
-                print(f"✅ Firebase initialized from GOOGLE_APPLICATION_CREDENTIALS: {google_app_creds}")
-                return
-            except Exception as e:
-                print(f"⚠️  Failed to initialize from GOOGLE_APPLICATION_CREDENTIALS: {e}")
-        
-        # Method 3: Check for local service account file
-        local_cred_paths = [
-            "firebase-service-account.json",
-            "serviceAccountKey.json",
-            "../serenique/android/app/google-services.json"  # Not recommended but fallback
-        ]
-        
-        for path in local_cred_paths:
-            if os.path.exists(path):
+        # Skip if already initialized globally
+        if firebase_admin._apps:
+            print("ℹ️ Firebase already initialized (using existing app)")
+            return
+            
+        try:
+            # Method 1: Load from FIREBASE_CREDENTIALS environment variable
+            firebase_creds_json = os.getenv("FIREBASE_CREDENTIALS")
+            
+            if firebase_creds_json:
                 try:
-                    cred = credentials.Certificate(path)
+                    cred_dict = json.loads(firebase_creds_json)
+                    cred = credentials.Certificate(cred_dict)
                     firebase_admin.initialize_app(cred)
-                    print(f"✅ Firebase initialized from local file: {path}")
+                    print("✅ Firebase initialized from FIREBASE_CREDENTIALS env variable")
+                    return
+                except json.JSONDecodeError as e:
+                    print(f"⚠️ Failed to parse FIREBASE_CREDENTIALS: {e}")
+                except Exception as e:
+                    print(f"⚠️ Failed to initialize from FIREBASE_CREDENTIALS: {e}")
+            
+            # Method 2: Check for GOOGLE_APPLICATION_CREDENTIALS (file path)
+            google_app_creds = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+            
+            if google_app_creds and os.path.exists(google_app_creds):
+                try:
+                    cred = credentials.Certificate(google_app_creds)
+                    firebase_admin.initialize_app(cred)
+                    print(f"✅ Firebase initialized from GOOGLE_APPLICATION_CREDENTIALS: {google_app_creds}")
                     return
                 except Exception as e:
-                    print(f"⚠️  Failed to initialize from {path}: {e}")
-        
-        # Method 4: Use Application Default Credentials (for Google Cloud environment)
-        try:
-            firebase_admin.initialize_app()
-            print("✅ Firebase initialized with Application Default Credentials")
-            return
+                    print(f"⚠️ Failed to initialize from GOOGLE_APPLICATION_CREDENTIALS: {e}")
+            
+            # Method 3: Check for local service account file
+            local_cred_paths = [
+                "serenique-avni-firebase-adminsdk-fbsvc-40c2275922.json",
+                "firebase-service-account.json",
+                "serviceAccountKey.json",
+            ]
+            
+            for path in local_cred_paths:
+                if os.path.exists(path):
+                    try:
+                        cred = credentials.Certificate(path)
+                        firebase_admin.initialize_app(cred)
+                        print(f"✅ Firebase initialized from local file: {path}")
+                        return
+                    except Exception as e:
+                        print(f"⚠️ Failed to initialize from {path}: {e}")
+            
+            # If all methods fail
+            raise ValueError(
+                "❌ Could not initialize Firebase Admin SDK. Please provide credentials via:\n"
+                "1. FIREBASE_CREDENTIALS environment variable (JSON string)\n"
+                "2. GOOGLE_APPLICATION_CREDENTIALS environment variable (file path)\n"
+                "3. Local service account JSON file\n"
+            )
+            
         except Exception as e:
-            print(f"⚠️  Failed to initialize with Application Default Credentials: {e}")
-        
-        # If all methods fail
-        raise ValueError(
-            "❌ Could not initialize Firebase Admin SDK. Please provide credentials via:\n"
-            "1. FIREBASE_CREDENTIALS environment variable (JSON string)\n"
-            "2. GOOGLE_APPLICATION_CREDENTIALS environment variable (file path)\n"
-            "3. Local service account JSON file\n"
-            "4. Application Default Credentials (on Google Cloud)"
-        )
-    
+            raise RuntimeError(f"❌ Failed to initialize Firebase: {e}")
+
     # ========================================================================
     # USER PERSONA OPERATIONS
     # ========================================================================
