@@ -103,6 +103,15 @@ class ChatResponse(BaseModel):
     chat_history_saved: bool = False
 
 
+class ChatHistoryResponse(BaseModel):
+    """Response containing chat history messages"""
+    success: bool
+    user_id: str
+    message_count: int
+    messages: list
+    message: str
+
+
 # ============================================================================
 # PERSONA GENERATION ENDPOINTS
 # ============================================================================
@@ -427,6 +436,67 @@ async def chat(request: ChatRequest):
         raise HTTPException(
             status_code=500,
             detail=f"Failed to process chat: {str(e)}"
+        )
+
+
+# ============================================================================
+# CHAT HISTORY ENDPOINT
+# ============================================================================
+
+@app.get("/api/chat/history/{user_id}", response_model=ChatHistoryResponse)
+async def get_chat_history(user_id: str, limit: int = 50):
+    """
+    Get all chat history messages for a particular user.
+    
+    This endpoint retrieves all messages from the chat_history collection
+    for a specific user, ordered by timestamp.
+    
+    Args:
+        user_id: The Firebase Auth user ID
+        limit: Maximum number of messages to retrieve (default: 50, max: 500)
+    
+    Returns:
+        List of chat messages with role, content, timestamp, and metadata
+    """
+    try:
+        print(f"🔄 Fetching chat history for user {user_id}...")
+        
+        # Validate limit parameter
+        if limit < 1 or limit > 500:
+            raise HTTPException(
+                status_code=400,
+                detail="Limit must be between 1 and 500"
+            )
+        
+        # Get chat history from Firebase
+        loop = asyncio.get_event_loop()
+        chat_history = await asyncio.wait_for(
+            loop.run_in_executor(
+                None, 
+                firebase_service.get_chat_history,
+                user_id,
+                limit
+            ),
+            timeout=30
+        )
+        
+        print(f"✅ Retrieved {len(chat_history)} messages for user {user_id}")
+        
+        return {
+            "success": True,
+            "user_id": user_id,
+            "message_count": len(chat_history),
+            "messages": chat_history,
+            "message": f"Successfully retrieved {len(chat_history)} messages"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Error retrieving chat history: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to retrieve chat history: {str(e)}"
         )
 
 
