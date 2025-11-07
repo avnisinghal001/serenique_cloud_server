@@ -95,12 +95,22 @@ class ChatRequest(BaseModel):
     include_history: bool = True  # Whether to include previous chat history
 
 
+class ExerciseRecommendation(BaseModel):
+    """Exercise recommendation model"""
+    exercise_id: str  # Unique identifier for the exercise
+    exercise_name: str  # Display name
+    category: str  # "breathing", "grounding", "meditation", "relaxation"
+    reason: str  # Why this exercise is recommended
+    duration: Optional[str] = None  # e.g., "5 minutes"
+
+
 class ChatResponse(BaseModel):
     """Response containing AI chatbot reply"""
     success: bool
     response: Optional[str] = None
     message: str
     chat_history_saved: bool = False
+    recommended_exercises: Optional[list[ExerciseRecommendation]] = None
 
 
 class ChatHistoryResponse(BaseModel):
@@ -110,6 +120,272 @@ class ChatHistoryResponse(BaseModel):
     message_count: int
     messages: list
     message: str
+
+
+# ============================================================================
+# EXERCISE RECOMMENDATION LOGIC
+# ============================================================================
+
+# Available exercises database - matches exactly what's in the Flutter toolkit
+AVAILABLE_EXERCISES = {
+    "breathing": [
+        {
+            "id": "diaphragmatic",
+            "name": "Diaphragmatic Breathing",
+            "subtitle": "Deep belly relaxation",
+            "keywords": ["stress", "anxiety", "calm", "relax", "nervous", "tense", "panic", "overwhelm", "belly", "deep breath"],
+            "reason": "helps calm your nervous system through deep belly breathing",
+            "duration": "4-6 minutes"
+        },
+        {
+            "id": "box_breathing",
+            "name": "Box Breathing",
+            "subtitle": "4-4-4-4 technique",
+            "keywords": ["focus", "concentration", "clarity", "clear mind", "distracted", "scattered", "mental", "athletes"],
+            "reason": "enhances focus and mental clarity with structured breathing",
+            "duration": "4 minutes"
+        },
+        {
+            "id": "478_breathing",
+            "name": "4-7-8 Breathing",
+            "subtitle": "Sleep & relaxation",
+            "keywords": ["sleep", "insomnia", "tired", "rest", "bedtime", "can't sleep", "peaceful", "drift"],
+            "reason": "promotes deep relaxation and helps with sleep",
+            "duration": "3-5 minutes"
+        },
+        {
+            "id": "pursed_lip",
+            "name": "Pursed-Lip Breathing",
+            "subtitle": "Gentle release",
+            "keywords": ["tension", "anxiety", "gentle", "slow", "release", "melt", "ease"],
+            "reason": "reduces anxiety and improves focus through gentle breath control",
+            "duration": "5 minutes"
+        }
+    ],
+    "grounding": [
+        {
+            "id": "5_4_3_2_1",
+            "name": "5-4-3-2-1 Sensory Method",
+            "subtitle": "Sensory grounding",
+            "keywords": ["panic", "anxiety", "overwhelm", "dissociat", "detach", "unreal", "spiral", "present", "senses"],
+            "reason": "anchors you to the present moment through your five senses",
+            "duration": "5-10 minutes"
+        },
+        {
+            "id": "texture_focus",
+            "name": "Texture Focus",
+            "subtitle": "Tactile grounding",
+            "keywords": ["anxious", "worry", "racing thoughts", "restless", "touch", "feel", "tactile"],
+            "reason": "redirects anxious thoughts through tactile awareness",
+            "duration": "3-5 minutes"
+        },
+        {
+            "id": "mental_grounding",
+            "name": "Mental Grounding",
+            "subtitle": "Cognitive prompts",
+            "keywords": ["distract", "intrusive thoughts", "rumination", "overthink", "cognitive", "mental"],
+            "reason": "breaks cycles of negative thinking with cognitive exercises",
+            "duration": "5 minutes"
+        }
+    ],
+    "meditation": [
+        {
+            "id": "body_scan",
+            "name": "Body Scan Meditation",
+            "subtitle": "Progressive relaxation",
+            "keywords": ["tension", "tight", "sore", "physical", "body", "ache", "head to toe", "scan"],
+            "reason": "releases physical tension from head to toe through systematic awareness",
+            "duration": "5-20 minutes"
+        },
+        {
+            "id": "mindful_walking",
+            "name": "Mindful Walking",
+            "subtitle": "Moving meditation",
+            "keywords": ["walk", "movement", "step", "moving", "active", "outdoors", "nature"],
+            "reason": "connects you with each step through mindful movement",
+            "duration": "5-20 minutes"
+        },
+        {
+            "id": "mindful_eating",
+            "name": "Mindful Eating",
+            "subtitle": "Sensory awareness",
+            "keywords": ["food", "eating", "taste", "savor", "sensory", "meal", "nourishment"],
+            "reason": "engages all your senses to appreciate and savor each moment",
+            "duration": "5-15 minutes"
+        }
+    ],
+    "relaxation": [
+        {
+            "id": "body_mapping",
+            "name": "Body Mapping",
+            "subtitle": "Visualize your tension",
+            "keywords": ["tension", "body", "visual", "map", "locate", "where", "identify"],
+            "reason": "helps you identify and release tension by visualizing your body",
+            "duration": "10 minutes"
+        },
+        {
+            "id": "wave_breathing",
+            "name": "Wave Breathing",
+            "subtitle": "Breathe with the ocean",
+            "keywords": ["wave", "ocean", "rhythm", "flow", "calm", "regulate", "nervous"],
+            "reason": "calms your nervous system by breathing with gentle wave rhythms",
+            "duration": "5-10 minutes"
+        },
+        {
+            "id": "self_hug",
+            "name": "Self-Hug",
+            "subtitle": "Closed loop connection",
+            "keywords": ["hug", "self-soothing", "comfort", "self-compassion", "alone", "need comfort"],
+            "reason": "provides gentle self-soothing through bilateral stimulation",
+            "duration": "5 minutes"
+        }
+    ]
+}
+
+
+def analyze_and_recommend_exercises(user_message: str, ai_response: str, persona: Dict) -> list[ExerciseRecommendation]:
+    """
+    Intelligently analyze user message and AI response to recommend appropriate exercises.
+    
+    This function uses smart heuristics to determine:
+    1. IF exercises should be recommended (not always needed)
+    2. WHICH exercises would be most helpful
+    3. HOW MANY exercises to suggest (0-3)
+    
+    Returns 0-3 exercise recommendations based on:
+    - Keywords indicating distress in user message
+    - User's current mood and stress level
+    - Context of the conversation
+    - Whether AI suggested exercises in response
+    """
+    recommendations = []
+    message_lower = user_message.lower()
+    response_lower = ai_response.lower()
+    combined_text = message_lower + " " + response_lower
+    
+    # Get user's current state
+    current_mood = persona.get("liveUserState", {}).get("currentMood", "")
+    stress_level = persona.get("liveUserState", {}).get("stressLevel", 5)
+    
+    # ❌ DON'T recommend exercises if:
+    # 1. User is sharing positive news/updates
+    positive_indicators = ["happy", "excited", "good news", "feeling better", "went well", "proud", "accomplished", "great day", "doing good"]
+    if any(indicator in message_lower for indicator in positive_indicators) and "but" not in message_lower and "however" not in message_lower:
+        print("⏭️ Skipping exercise recommendation - positive conversation")
+        return []
+    
+    # 2. User is just greeting or very brief acknowledgment (only skip if VERY short and no distress)
+    very_short_casual = ["hi", "hello", "hey", "thanks", "ok", "okay", "sure", "yes", "no", "bye"]
+    if len(user_message.split()) <= 2 and any(casual in message_lower for casual in very_short_casual):
+        print("⏭️ Skipping exercise recommendation - greeting/brief response")
+        return []
+    
+    # 3. User is asking about app features (not distress) - but allow if combined with stress keywords
+    app_questions = ["how does this work", "what is this app", "tell me about the app", "show me features"]
+    if any(q in message_lower for q in app_questions):
+        print("⏭️ Skipping exercise recommendation - app inquiry")
+        return []
+    
+    # ✅ DO recommend if user is showing distress
+    distress_level = 0
+    
+    # Check for high-distress keywords
+    high_distress = ["panic", "can't breathe", "overwhelm", "breaking down", "can't take it", "help me", "what do i do"]
+    for keyword in high_distress:
+        if keyword in message_lower:
+            distress_level += 3
+    
+    # Check for medium-distress keywords
+    medium_distress = ["anxious", "stressed", "worried", "can't sleep", "tense", "racing", "scared"]
+    for keyword in medium_distress:
+        if keyword in message_lower:
+            distress_level += 2
+    
+    # Check if AI suggested exercises in response (strong signal)
+    if any(phrase in response_lower for phrase in ["would you like to try", "can help", "technique", "exercise", "breathing", "grounding"]):
+        distress_level += 2
+    
+    # Check if user explicitly asks for help/solutions
+    if any(phrase in message_lower for phrase in ["what can i do", "how do i", "help me", "what should", "need to", "want to feel better"]):
+        distress_level += 3
+    
+    # Factor in current mood and stress from persona
+    if current_mood.lower() in ["anxious", "stressed", "overwhelmed", "panic"]:
+        distress_level += 2
+    if stress_level >= 7:
+        distress_level += 1
+    
+    # Only recommend if distress level is significant
+    if distress_level < 2:
+        print(f"⏭️ Skipping exercise recommendation - low distress level ({distress_level})")
+        return []
+    
+    print(f"✅ Distress level sufficient ({distress_level}) - analyzing exercises")
+    
+    # Score each exercise based on relevance
+    exercise_scores = []
+    
+    for category, exercises in AVAILABLE_EXERCISES.items():
+        for exercise in exercises:
+            score = 0
+            
+            # Check keyword matches (weighted by importance)
+            for keyword in exercise["keywords"]:
+                if keyword.lower() in combined_text:
+                    # Give higher score if keyword appears in user message (not just AI response)
+                    if keyword.lower() in message_lower:
+                        score += 3
+                    else:
+                        score += 1
+            
+            # Boost score based on mood alignment
+            if current_mood.lower() in ["anxious", "stressed", "overwhelmed"]:
+                if category in ["breathing", "grounding"]:
+                    score += 4
+            elif current_mood.lower() in ["sad", "lonely", "down"]:
+                if category in ["meditation", "relaxation"]:
+                    score += 4
+            elif current_mood.lower() in ["tired", "exhausted"]:
+                if exercise["id"] in ["478_breathing", "body_scan", "wave_breathing"]:
+                    score += 4
+            
+            # Boost based on stress level
+            if stress_level >= 8 and category in ["breathing", "grounding"]:
+                score += 3
+            elif stress_level >= 6 and category in ["meditation", "relaxation"]:
+                score += 2
+            
+            # Extra boost if AI specifically mentioned this type of exercise
+            exercise_name_lower = exercise["name"].lower()
+            if exercise_name_lower in response_lower or category in response_lower:
+                score += 5
+            
+            if score > 0:
+                exercise_scores.append((score, category, exercise))
+    
+    # Sort by score and take top 2-3 (not overwhelming)
+    exercise_scores.sort(key=lambda x: x[0], reverse=True)
+    
+    # Determine how many to recommend based on distress level
+    max_recommendations = 3 if distress_level >= 6 else 2
+    
+    # Build recommendations (only if relevance score is significant)
+    for score, category, exercise in exercise_scores[:max_recommendations]:
+        if score >= 3:  # Higher threshold - only recommend if clearly relevant
+            recommendations.append(ExerciseRecommendation(
+                exercise_id=exercise["id"],
+                exercise_name=exercise["name"],
+                category=category,
+                reason=exercise["reason"],
+                duration=exercise.get("duration")
+            ))
+    
+    if recommendations:
+        print(f"💪 Recommending {len(recommendations)} exercises: {[r.exercise_name for r in recommendations]}")
+    else:
+        print("⏭️ No exercises met relevance threshold")
+    
+    return recommendations
 
 
 # ============================================================================
@@ -420,13 +696,24 @@ async def chat(request: ChatRequest):
         )
         firebase_service.update_live_state(request.user_id, updated_state)
         
+        # 🏃 NEW: Analyze and recommend exercises
+        recommended_exercises = analyze_and_recommend_exercises(
+            user_message=request.message,
+            ai_response=ai_response,
+            persona=persona.model_dump() if hasattr(persona, 'model_dump') else persona
+        )
+        
+        if recommended_exercises:
+            print(f"💪 Recommended {len(recommended_exercises)} exercises")
+        
         print(f"✅ Chat processed successfully for user {request.user_id}")
         
         return ChatResponse(
             success=True,
             response=ai_response,
             message="Chat response generated successfully",
-            chat_history_saved=True
+            chat_history_saved=True,
+            recommended_exercises=recommended_exercises if recommended_exercises else None
         )
         
     except HTTPException:
