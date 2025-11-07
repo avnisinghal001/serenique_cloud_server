@@ -389,6 +389,69 @@ class FirebaseService:
             print(f"❌ Error retrieving chat history for user {user_id}: {e}")
             return []
     
+    def get_chat_history_by_date(
+        self,
+        user_id: str,
+        date: str,
+        limit: int = 50
+    ) -> List[Dict[str, Any]]:
+        """
+        Retrieve chat history for a user filtered by a specific date.
+        
+        Args:
+            user_id: User ID from Firebase Authentication
+            date: Date string in format YYYY-MM-DD (e.g., "2025-11-07")
+            limit: Maximum number of messages to retrieve (default 50)
+        
+        Returns:
+            List of message dictionaries from that date ordered by timestamp (newest first)
+        """
+        try:
+            from datetime import datetime, timedelta
+            
+            # Parse the date string
+            date_obj = datetime.strptime(date, "%Y-%m-%d")
+            
+            # Create start and end of day timestamps
+            start_of_day = date_obj.replace(hour=0, minute=0, second=0, microsecond=0)
+            end_of_day = start_of_day + timedelta(days=1)
+            
+            # Convert to ISO format strings for Firestore query
+            start_iso = start_of_day.isoformat()
+            end_iso = end_of_day.isoformat()
+            
+            print(f"🔍 Querying messages from {start_iso} to {end_iso}")
+            
+            # Query messages within the date range
+            messages_ref = (
+                self.db.collection("chat_history")
+                .document(user_id)
+                .collection("messages")
+                .where("created_at", ">=", start_iso)
+                .where("created_at", "<", end_iso)
+                .order_by("created_at", direction=firestore.Query.DESCENDING)
+                .limit(limit)
+            )
+            
+            messages = messages_ref.stream()
+            
+            chat_history = []
+            for msg in messages:
+                msg_data = msg.to_dict()
+                chat_history.append({
+                    "role": msg_data.get("role"),
+                    "content": msg_data.get("content"),
+                    "timestamp": msg_data.get("created_at"),
+                    "metadata": msg_data.get("metadata", {})
+                })
+            
+            print(f"✅ Retrieved {len(chat_history)} messages for user {user_id} on {date} (newest first)")
+            return chat_history
+            
+        except Exception as e:
+            print(f"❌ Error retrieving chat history by date for user {user_id}: {e}")
+            return []
+    
     def get_chat_history_optimized(
         self,
         user_id: str,

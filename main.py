@@ -501,6 +501,83 @@ async def get_chat_history(user_id: str, limit: int = 50):
 
 
 # ============================================================================
+# CHAT HISTORY BY DATE ENDPOINT
+# ============================================================================
+
+@app.get("/api/chat/history/{user_id}/date", response_model=ChatHistoryResponse)
+async def get_chat_history_by_date(
+    user_id: str, 
+    date: str,
+    limit: int = 50
+):
+    """
+    Get chat history messages for a particular user filtered by date.
+    
+    This endpoint retrieves messages from the chat_history collection
+    for a specific user on a specific date, ordered by timestamp.
+    
+    Args:
+        user_id: The Firebase Auth user ID
+        date: Date in format YYYY-MM-DD (e.g., "2025-11-07")
+        limit: Maximum number of messages to retrieve (default: 50, max: 500)
+    
+    Returns:
+        List of chat messages from that specific date with role, content, timestamp, and metadata
+    """
+    try:
+        print(f"🔄 Fetching chat history for user {user_id} on date {date}...")
+        
+        # Validate limit parameter
+        if limit < 1 or limit > 500:
+            raise HTTPException(
+                status_code=400,
+                detail="Limit must be between 1 and 500"
+            )
+        
+        # Parse and validate date
+        try:
+            from datetime import datetime
+            date_obj = datetime.strptime(date, "%Y-%m-%d")
+        except ValueError:
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid date format. Use YYYY-MM-DD (e.g., 2025-11-07)"
+            )
+        
+        # Get chat history from Firebase filtered by date
+        loop = asyncio.get_event_loop()
+        chat_history = await asyncio.wait_for(
+            loop.run_in_executor(
+                None, 
+                firebase_service.get_chat_history_by_date,
+                user_id,
+                date,
+                limit
+            ),
+            timeout=30
+        )
+        
+        print(f"✅ Retrieved {len(chat_history)} messages for user {user_id} on {date}")
+        
+        return {
+            "success": True,
+            "user_id": user_id,
+            "message_count": len(chat_history),
+            "messages": chat_history,
+            "message": f"Successfully retrieved {len(chat_history)} messages for {date}"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Error retrieving chat history by date: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to retrieve chat history: {str(e)}"
+        )
+
+
+# ============================================================================
 # HEALTH AND STATS ENDPOINTS
 # ============================================================================
 
