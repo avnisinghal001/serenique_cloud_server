@@ -231,7 +231,7 @@ class LangChainPersonaArchitect:
         
         Args:
             google_api_key: Google API key for Gemini
-            model_name: Gemini model to use (default: gemini-2.0-flash-exp)
+            model_name: Gemini model to use (default: gemini-2.0-flash)
             temperature: Model temperature (0.0-1.0)
         """
         self.llm = ChatGoogleGenerativeAI(
@@ -248,7 +248,7 @@ class LangChainPersonaArchitect:
         self.prompt = ChatPromptTemplate.from_messages([
             ("system", """You are an expert clinical psychologist specializing in personality assessment and therapeutic matching for college students. Your role is to analyze quiz responses and generate a comprehensive personality profile that will guide an AI mental wellness chatbot.
 
-The chatbot (named Serenique) serves college students dealing with stress, anxiety, sleep issues, and academic pressure. Your analysis must be:
+The chatbot (named Serebot) serves college students dealing with stress, anxiety, sleep issues, and academic pressure. Your analysis must be:
 1. Psychologically accurate and evidence-based
 2. Tailored to college student mental health needs
 3. Actionable for AI chatbot personalization
@@ -703,7 +703,7 @@ The system prompt should be comprehensive (300-500 words) and include:
             insights_context += "  - \"That [stressor] you mentioned before...\"\n"
         
         # Build comprehensive system prompt with persona context
-        system_prompt = f"""You are Serenique, a calm, gentle, and deeply empathetic AI mental wellness companion for college students.
+        system_prompt = f"""You are Serebot, a calm, gentle, and deeply empathetic AI mental wellness companion for college students.
 
 CORE IDENTITY & APPROACH:
 You embody peace, understanding, and warmth. Your presence should feel like a safe harbor - calm waters where students can rest and find clarity. Speak softly but with genuine care. You are not here to fix, but to support, listen, and gently guide.
