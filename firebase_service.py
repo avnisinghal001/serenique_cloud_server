@@ -359,14 +359,14 @@ class FirebaseService:
             limit: Maximum number of messages to retrieve (default 50)
         
         Returns:
-            List of message dictionaries ordered by timestamp
+            List of message dictionaries ordered by timestamp (newest first)
         """
         try:
             messages_ref = (
                 self.db.collection("chat_history")
                 .document(user_id)
                 .collection("messages")
-                .order_by("created_at", direction=firestore.Query.ASCENDING)
+                .order_by("created_at", direction=firestore.Query.DESCENDING)
                 .limit(limit)
             )
             
@@ -382,7 +382,7 @@ class FirebaseService:
                     "metadata": msg_data.get("metadata", {})
                 })
             
-            print(f"✅ Retrieved {len(chat_history)} messages for user {user_id}")
+            print(f"✅ Retrieved {len(chat_history)} messages for user {user_id} (newest first)")
             return chat_history
             
         except Exception as e:
