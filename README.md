@@ -76,7 +76,7 @@ python -m uvicorn main:app --reload --port 5001
 
 # 4. Open browser```bash
 
-# http://localhost:5001       - Home pageexport MODEL_NAME="gemini-2.0-flash-exp"  # Default model
+# http://localhost:5001       - Home pageexport MODEL_NAME="gemini-2.5-flash"  # Default model
 
 # http://localhost:5001/docs  - API documentationexport MODEL_TEMPERATURE="0.7"            # Default temperature
 
@@ -120,7 +120,7 @@ Required in `.env` (local) or Vercel Dashboard (production):Server will be avail
 
 GOOGLE_API_KEY=your_gemini_api_key_here- **Health Check**: http://localhost:5001/api/health
 
-MODEL_NAME=gemini-2.0-flash-exp
+MODEL_NAME=gemini-2.5-flash
 
 MODEL_TEMPERATURE=0.7## 📡 API Endpoints
 
