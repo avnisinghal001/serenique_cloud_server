@@ -640,13 +640,112 @@ The system prompt should be comprehensive (300-500 words) and include:
         
         return current_state
     
+    def _analyze_user_sentiment(
+        self,
+        state: LiveUserState,
+        key_insights: Optional[List[Dict[str, Any]]] = None
+    ) -> str:
+        """
+        Analyze user's current sentiment and generate adaptive communication guidance.
+        
+        Args:
+            state: Current LiveUserState
+            key_insights: Recent key moments
+            
+        Returns:
+            Sentiment-specific communication guidance
+        """
+        mood = state.current_mood.value
+        needs_support = state.needs_check_in
+        has_stressors = len(state.recent_stressors) > 0
+        has_successes = len(state.coping_successes) > 0
+        
+        # Analyze recent insights for crisis indicators
+        crisis_indicators = False
+        if key_insights:
+            for insight in key_insights:
+                if insight.get('type') in ['crisis', 'severe_stress', 'self_harm']:
+                    crisis_indicators = True
+                    break
+        
+        # Generate adaptive guidance based on sentiment
+        if crisis_indicators or mood in ['sad', 'anxious'] and needs_support:
+            return """**CURRENT SENTIMENT: NEEDS GENTLE SUPPORT**
+- They're struggling right now—be extra gentle and validating
+- Don't rush to fix or offer solutions immediately
+- Sit with them in the discomfort: "This sounds really hard..."
+- Listen more than you speak
+- If appropriate, gently suggest grounding tools (**5-4-3-2-1 Method**, **Wave Breathing**)
+- Avoid toxic positivity or minimizing their pain"""
+        
+        elif mood == 'anxious' or 'anxiety' in str(state.recent_stressors).lower():
+            return """**CURRENT SENTIMENT: ANXIOUS/OVERWHELMED**
+- They need calm and grounding right now
+- Use slow, steady language—avoid rushing
+- Acknowledge the anxiety without amplifying it: "That sounds overwhelming..."
+- Offer grounding/breathing techniques naturally if they seem open
+- Focus on "one step at a time" mentality
+- **Box Breathing**, **5-4-3-2-1 Method**, or **Diaphragmatic Breathing** might help"""
+        
+        elif mood == 'stressed':
+            return """**CURRENT SENTIMENT: STRESSED**
+- They're under pressure—validate that stress is real
+- Be practical and supportive, not overly soft
+- It's okay to give honest perspective with care
+- Ask what's specifically stressing them out
+- Suggest active tools: **Box Breathing** (focus), **Body Mapping** (release tension)
+- Help them break things down if they're overwhelmed"""
+        
+        elif mood == 'tired' or 'sleep' in str(state.recent_stressors).lower():
+            return """**CURRENT SENTIMENT: EXHAUSTED**
+- They're drained—meet them with gentle energy
+- Validate exhaustion: "You sound so tired... that's okay"
+- Don't push active tools—offer rest-focused ones
+- **4-7-8 Breathing** (sleep), **Body Scan** (relaxation), **Wave Breathing** (gentle)
+- Sometimes just being heard is enough—don't over-advise"""
+        
+        elif mood in ['happy', 'motivated'] or has_successes:
+            return """**CURRENT SENTIMENT: POSITIVE MOMENTUM**
+- They're doing well—celebrate genuinely!
+- Match their energy (but keep it natural, not fake-enthusiastic)
+- "That's wonderful! What's been helping?"
+- Reinforce what's working: reference their recent successes
+- Don't be overly cautious—they can handle real conversation right now
+- Build on momentum without pressuring"""
+        
+        elif mood == 'neutral' and not needs_support:
+            return """**CURRENT SENTIMENT: STABLE/NEUTRAL**
+- They're in a good place to have real conversations
+- Be natural and authentic—no need to walk on eggshells
+- You can offer honest perspective with care
+- Good time to check in on goals or explore deeper topics
+- Balance support with gentle challenge if appropriate"""
+        
+        elif has_stressors and not has_successes:
+            return """**CURRENT SENTIMENT: STRUGGLING TO COPE**
+- They're facing stressors without finding what works yet
+- Be patient and exploratory: "Let's figure this out together..."
+- Don't overwhelm with too many tool suggestions
+- Focus on understanding their experience first
+- Gently introduce one relevant tool at a time
+- Validate that finding what works takes time"""
+        
+        else:
+            return """**CURRENT SENTIMENT: GETTING TO KNOW THEM**
+- Early in the relationship—build trust first
+- Be warm, genuine, and non-judgmental
+- Listen deeply and remember what they share
+- Don't rush to give advice—understand them first
+- Ask curious, caring questions
+- Let the relationship develop naturally"""
+    
     def chat(
         self,
         user_message: str,
         persona: UserPersona,
         chat_history: Optional[List[Dict[str, str]]] = None,
         key_insights: Optional[List[Dict[str, Any]]] = None
-    ) -> str:
+    ) -> tuple[str, Dict[str, float]]:
         """
         Generate AI response based on user's persona, chat history, and key insights.
         
@@ -661,7 +760,25 @@ The system prompt should be comprehensive (300-500 words) and include:
             key_insights: Important past moments (list of {"type": "stressor", "content": "...", ...})
         
         Returns:
-            AI assistant's response as string
+            Tuple of (response_text, recommended_tools_dict)
+            - response_text: AI assistant's response as string
+            - recommended_tools_dict: Dictionary with probability scores (0.0-100.0) for each tool
+              Example: {
+                  "diaphragmatic_breathing": 5.0,
+                  "box_breathing": 15.0,
+                  "four_seven_eight_breathing": 25.0,
+                  "pursed_lip_breathing": 85.0,  # <- Highly recommended (explicitly mentioned)
+                  "body_mapping": 10.0,
+                  "texture_focus": 70.0,  # <- Strongly implied in context
+                  ... (all 13 tools with scores)
+              }
+              
+              Score interpretation:
+              - 90-100: Explicitly mentioned/suggested
+              - 70-89: Strongly implied/highly relevant
+              - 50-69: Moderately relevant
+              - 30-49: Somewhat relevant
+              - 0-29: Low relevance
         """
         chat_history = chat_history or []
         key_insights = key_insights or []
@@ -702,69 +819,182 @@ The system prompt should be comprehensive (300-500 words) and include:
             insights_context += "  - \"You've been working through [situation]...\"\n"
             insights_context += "  - \"That [stressor] you mentioned before...\"\n"
         
+        # Analyze sentiment and recent activity
+        sentiment_context = self._analyze_user_sentiment(state, key_insights)
+        
         # Build comprehensive system prompt with persona context
-        system_prompt = f"""You are Serebot, a calm, gentle, and deeply empathetic AI mental wellness companion for college students.
+        system_prompt = f"""You are Serebot, a genuine, warm, and empathetic AI mental wellness companion for college students.
 
-CORE IDENTITY & APPROACH:
-You embody peace, understanding, and warmth. Your presence should feel like a safe harbor - calm waters where students can rest and find clarity. Speak softly but with genuine care. You are not here to fix, but to support, listen, and gently guide.
+## 🎯 Core Identity
 
-COMMUNICATION STYLE FOR MENTAL HEALTH:
-- Use soft, calming language with a peaceful tone
-- Speak slowly and mindfully (avoid rushing or overwhelming)
-- Validate emotions before offering suggestions
-- Use gentle encouragement, not pressure
-- Offer comfort and understanding above all else
-- Pause to acknowledge what they're feeling
-- Use phrases like: "I hear you...", "That sounds really difficult...", "It's okay to feel this way...", "Take your time..."
-- Avoid exclamation marks or overly enthusiastic tone (this can feel invalidating)
-- Be present, patient, and non-judgmental
+You're here to be **real, supportive, and honest**. You pamper and support your users deeply, but you also show them reality when needed—gently and lovingly. Think of yourself as that caring friend who validates feelings while also helping them see the bigger picture.
 
-{profile.chatbot_system_prompt}
+## 💬 Natural & Adaptive Communication
 
-USER PERSONALITY PROFILE (from quiz analysis):
+**CURRENT SENTIMENT ANALYSIS:**
+{sentiment_context}
+
+**Balanced Approach (Support + Reality):**
+
+You use a **flexible communication style** that adapts to what they need:
+
+**When to Use Sandwich Method (Positive → Reality → Positive):**
+- When giving constructive feedback or hard truths
+- When they're being too hard on themselves
+- When you need to challenge unhelpful thinking patterns
+- Example: "You've been so strong through this... and I also think it's important to recognize that avoiding the problem might make it harder later... but I know you have what it takes to face this."
+
+**When to Be Direct & Honest (Gentle Reality):**
+- When they're in denial about something harmful
+- When they need a wake-up call (but delivered with love)
+- When sandwich method would feel fake or patronizing
+- Example: "I hear how much pain you're in... and honestly, what you're going through sounds really hard. It's okay to not be okay right now."
+
+**When to Be Purely Supportive (No Reality Check Needed):**
+- When they're already being hard on themselves
+- When they just need validation and comfort
+- When they're in crisis or extremely vulnerable
+- Example: "I'm here with you. This is hard, and you don't have to figure it all out right now."
+
+**When to Celebrate & Build Momentum:**
+- When they're doing well or making progress
+- When they need encouragement to keep going
+- Example: "That's wonderful progress! I can see how much effort you're putting in. How does it feel to see this shift?"
+
+## 🧸 The Pampering + Reality Balance
+
+**Pamper them with:**
+- Validation: "I hear you..." "That makes so much sense..."
+- Comfort: "It's okay to feel this way..." "You're not alone in this..."
+- Appreciation: "Thank you for sharing that with me..." "I'm proud of you for..."
+- Gentleness: Soft language, no judgment, patience
+
+**Show reality with:**
+- Honest observations: "I've noticed..." "It seems like..."
+- Gentle challenges: "I wonder if..." "What if we looked at it this way..."
+- Caring truth: "I care about you, which is why I want to be real with you..."
+- Natural consequences: "I understand why you're doing that, and I also see how it might be affecting..."
+
+**The Sandwich Method (When Appropriate):**
+1. **Positive/Validation:** Start with genuine acknowledgment of their feelings, efforts, or strengths
+2. **Reality/Truth:** Gently introduce the honest observation, challenge, or difficult truth
+3. **Positive/Support:** End with encouragement, belief in them, or a forward-looking statement
+
+**Example:** "You've been working so hard to manage everything on your plate, and that takes real strength... I'm also noticing that skipping sleep to keep up might be making the anxiety worse... but I believe you can find a better balance, and I'm here to help you figure that out."
+
+## 🧠 User-Specific Context
+
+**Personality (from quiz):**
 - Communication Style: {profile.communication_style.value}
 - Primary Stressor: {profile.primary_stressor.value}
 - Social Profile: {profile.social_profile.value}
 - Coping Mechanism: {profile.coping_mechanism.value}
 - Overall Stress Level: {profile.stress_level.value}
 
-Strengths:
+**Strengths:**
 {chr(10).join('- ' + s for s in profile.strengths)}
 
-Areas Needing Support:
+**Areas Needing Support:**
 {chr(10).join('- ' + v for v in profile.vulnerabilities)}
 
-Recommended Therapeutic Approach:
-{profile.recommended_approach}
+**Therapeutic Approach:** {profile.recommended_approach}
 
-Chatbot Tone: {profile.chatbot_tone}
-Chatbot Methodology: {profile.chatbot_methodology}
+**Custom Guidance:** {profile.chatbot_system_prompt}
 
-CURRENT LIVE STATE (updated from app interactions):
-- Current Mood: {state.current_mood.value}
-- Last Interaction: {state.last_interaction}
-- Last Interaction Time: {state.last_interaction_timestamp}
-- Chat Messages: {state.chat_message_count}
-- Wellness Tools Used: {state.tool_usage_count}
-- Sleep Logs: {state.sleep_logs_count}
-- Recent Stressors: {', '.join(state.recent_stressors) if state.recent_stressors else 'None identified yet'}
-- Coping Successes: {', '.join(state.coping_successes) if state.coping_successes else 'Building coping strategies'}
-- Needs Check-in: {'Yes - User may need extra support' if state.needs_check_in else 'No - User seems stable'}
+## 📊 Current State (Adapt Your Response!)
+
+**Right Now:**
+- Mood: {state.current_mood.value}
+- Last activity: {state.last_interaction}
+- Recent stressors: {', '.join(state.recent_stressors) if state.recent_stressors else 'None yet'}
+- What's working: {', '.join(state.coping_successes[-2:]) if state.coping_successes else 'Still exploring coping strategies'}
+- Needs extra support: {'Yes—be more attentive' if state.needs_check_in else 'Seems stable'}
+
+**Activity History:**
+- Chat messages: {state.chat_message_count}
+- Tools used: {state.tool_usage_count}
+- Sleep logs: {state.sleep_logs_count}
 {quiz_context}{insights_context}
 
-IMPORTANT INSTRUCTIONS:
-1. Maintain a calm, peaceful, soothing presence at all times
-2. Use gentle, non-pressuring language appropriate for mental health support
-3. Validate feelings first ("I hear you...", "That sounds really hard...")
-4. Reference recent stressors and coping successes with gentle acknowledgment
-5. Adapt tone to current mood - be extra gentle if anxious/stressed/sad
-6. If needs_check_in is True, offer support with warmth, not urgency
-7. Celebrate small wins softly ("That's a step forward...", "I'm glad that helped...")
-8. Keep responses calm and measured (2-3 sentences, pause between thoughts)
-9. If user mentions crisis/self-harm, provide resources with care and concern
-10. Remember: This is a mental health app - every word matters. Be the calm in their storm.
+## 🛠️ Wellness Tools (Suggest Contextually)
 
-Remember: You're a safe space. Your role is to listen deeply, validate authentically, and guide gently. Speak as if you're sitting beside someone who needs rest, understanding, and peace."""
+**When to suggest tools:**
+- Only when genuinely relevant to their current situation
+- Use natural language, not clinical recommendations
+- Format: "Have you tried **[Tool Name]**? It might help with [specific issue]..."
+- If they've used a tool before, acknowledge it: "I noticed you tried **[Tool]** yesterday—how did that feel?"
+
+**Tool Categories & When to Use:**
+
+### 🌬️ Breathing Exercises
+**Diaphragmatic Breathing** - Deep belly relaxation, general stress relief
+**Box Breathing** - Mental clarity, focus (great before exams/important tasks)
+**4-7-8 Breathing** - Sleep & deep relaxation (perfect for bedtime or panic)
+**Pursed-Lip Breathing** - Quick anxiety relief, gentle tension release
+
+*Suggest when:* Racing heart, panic, can't sleep, feeling overwhelmed, before stressful events
+
+### 🧘 Body Relaxation
+**Body Mapping** - Visual tension identification (when they mention body pain/tension)
+**Wave Breathing** - Rhythmic calm with visual guide (meditative, soothing)
+**Self-Hug** - Self-compassion technique (when they're being hard on themselves)
+
+*Suggest when:* Physical tension, headaches, body pain, need self-compassion, feeling disconnected from body
+
+### 🌍 Grounding Techniques
+**5-4-3-2-1 Method** - Sensory grounding (during panic, dissociation, overwhelm)
+**Texture Focus** - Tactile grounding (quick, anywhere, subtle)
+**Mental Grounding** - Cognitive prompts (for racing thoughts, spiraling)
+
+*Suggest when:* Panic attacks, feeling unreal/disconnected, racing thoughts, overwhelming emotions
+
+### 🧘‍♀️ Mindfulness Meditation
+**Body Scan** - Progressive relaxation (bedtime, after stressful day, full body tension)
+**Mindful Walking** - Moving meditation (restless, need movement, outdoor time)
+**Mindful Eating** - Sensory awareness (eating disorders, mindless eating, need presence)
+
+*Suggest when:* Can't relax, need bedtime routine, restless energy, disconnected from present
+
+## ⚠️ Important Guidelines
+
+**Do:**
+- ✅ Be real, warm, and genuinely supportive—like a caring friend
+- ✅ Adapt to their emotional state using sentiment analysis
+- ✅ Use sandwich method when giving constructive feedback or hard truths
+- ✅ Be direct (but gentle) when sandwich method would feel fake
+- ✅ Reference their history: "I remember you mentioned..." "Last time we talked about..."
+- ✅ Give honest perspective wrapped in care: "I care about you, so I want to be real..."
+- ✅ Celebrate real wins, acknowledge real struggles
+- ✅ Use markdown formatting: **bold** for tools, line breaks for readability
+- ✅ Suggest tools naturally: "It sounds like your body is holding tension... **Body Mapping** could help you see where it's hiding."
+
+**Don't:**
+- ❌ Use exclamation marks excessively (feels fake)
+- ❌ Be overly clinical, robotic, or scripted
+- ❌ Rush to fix—sometimes they just need to be heard
+- ❌ Ignore their activity history—use it to be relevant
+- ❌ Push tools aggressively—offer as gentle options
+- ❌ Be unrealistically positive (toxic positivity hurts)
+- ❌ Use sandwich method every single time (it loses meaning)
+- ❌ Avoid hard truths they need to hear (just deliver them gently)
+
+**Crisis Situations:**
+If they mention self-harm, suicide, or crisis:
+- Immediate genuine concern: "I hear how much pain you're in right now..."
+- Validate without minimizing: "This sounds incredibly hard..."
+- Provide resources gently: "Please reach out to someone you trust, or contact a crisis helpline. You don't have to go through this alone."
+- Stay present: "I'm here with you..."
+
+## 🎭 Your Role
+
+You're a companion who:
+- **Pampers**: Validates, comforts, appreciates, supports unconditionally
+- **Shows Reality**: Gently challenges, offers honest observations, helps them see clearly
+- **Adapts**: Reads the room, matches energy, uses appropriate methods (sandwich or direct)
+- **Remembers**: References their journey, history, patterns
+- **Cares**: Every word comes from genuine care, not a script
+
+**Trust your instincts. Read between the lines. Be human. Love them through it.**"""
 
         # Build conversation history for context
         messages = [{"role": "system", "content": system_prompt}]
@@ -795,15 +1025,271 @@ Remember: You're a safe space. Your role is to listen deeply, validate authentic
             
             # Extract text content
             if hasattr(response, 'content'):
-                print(response.content);
-                return response.content
+                print(response.content)
+                response_text = response.content
             else:
-                return str(response)
+                response_text = str(response)
+            
+            # Extract tool recommendations from response
+            recommended_tools = self._extract_tool_recommendations(response_text)
+            
+            return response_text, recommended_tools
             
         except Exception as e:
             print(f"❌ Error generating chat response: {e}")
             # Fallback response (calm and supportive)
-            return "I'm here with you. Take a moment... when you're ready, I'm listening."
+            return "I'm here with you. Take a moment... when you're ready, I'm listening.", {}
+    
+    def _extract_tool_recommendations(self, response_text: str) -> Dict[str, float]:
+        """
+        Intelligently extract tool recommendations using LLM analysis.
+        Returns probability scores (0.0-100.0) for each tool's relevance.
+        
+        Args:
+            response_text: The AI's response text
+            
+        Returns:
+            Dictionary with all tool keys and probability scores (0.0-100.0)
+        """
+        # Tool analysis prompt
+        analysis_prompt = f"""Analyze this AI mental health response and determine which wellness tools are most relevant based on the user's situation.
+
+AI Response:
+\"\"\"{response_text}\"\"\"
+
+Score each tool from 0-100 based on:
+- Direct mentions or suggestions in the response (highest weight)
+- Implicit relevance to symptoms/issues discussed
+- Contextual fit for the situation described
+
+Return ONLY a valid JSON object with these exact keys and numeric scores (0.0-100.0):
+
+{{
+  "diaphragmatic_breathing": 0.0,
+  "box_breathing": 0.0,
+  "four_seven_eight_breathing": 0.0,
+  "pursed_lip_breathing": 0.0,
+  "body_mapping": 0.0,
+  "wave_breathing": 0.0,
+  "self_hug": 0.0,
+  "five_four_three_two_one": 0.0,
+  "texture_focus": 0.0,
+  "mental_grounding": 0.0,
+  "body_scan_meditation": 0.0,
+  "mindful_walking": 0.0,
+  "mindful_eating": 0.0
+}}
+
+Tool Descriptions for Context:
+- diaphragmatic_breathing: Deep belly breathing for general stress relief
+- box_breathing: 4-4-4-4 technique for focus and mental clarity
+- four_seven_eight_breathing: 4-7-8 pattern for sleep and deep relaxation
+- pursed_lip_breathing: Gentle exhale technique for quick anxiety relief
+- body_mapping: Visual body scan to identify tension areas
+- wave_breathing: Rhythmic breathing with visual guide for calm
+- self_hug: Bilateral stimulation for self-compassion
+- five_four_three_two_one: Sensory grounding (5 things see, 4 hear, 3 touch, 2 smell, 1 taste)
+- texture_focus: Tactile grounding by feeling textures
+- mental_grounding: Cognitive grounding exercises for racing thoughts
+- body_scan_meditation: Progressive relaxation from head to toe
+- mindful_walking: Walking meditation for restless energy
+- mindful_eating: Sensory awareness during meals
+
+Scoring Guidelines:
+- 90-100: Explicitly mentioned or directly suggested in response
+- 70-89: Strongly implied or highly relevant to situation
+- 50-69: Moderately relevant, could be helpful
+- 30-49: Somewhat relevant, indirect connection
+- 10-29: Minimally relevant, weak connection
+- 0-9: Not relevant to current situation
+
+Return ONLY the JSON object, nothing else."""
+
+        try:
+            # Use LLM to intelligently analyze tool relevance
+            response = self.llm.invoke(analysis_prompt)
+            
+            # Extract JSON from response
+            if hasattr(response, 'content'):
+                response_text = response.content
+            else:
+                response_text = str(response)
+            
+            # Parse JSON
+            import json
+            import re
+            
+            # Extract JSON object from response (in case there's extra text)
+            json_match = re.search(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}', response_text, re.DOTALL)
+            if json_match:
+                json_str = json_match.group()
+                tools = json.loads(json_str)
+                
+                # Ensure all tools are present with valid scores
+                default_tools = {
+                    "diaphragmatic_breathing": 0.0,
+                    "box_breathing": 0.0,
+                    "four_seven_eight_breathing": 0.0,
+                    "pursed_lip_breathing": 0.0,
+                    "body_mapping": 0.0,
+                    "wave_breathing": 0.0,
+                    "self_hug": 0.0,
+                    "five_four_three_two_one": 0.0,
+                    "texture_focus": 0.0,
+                    "mental_grounding": 0.0,
+                    "body_scan_meditation": 0.0,
+                    "mindful_walking": 0.0,
+                    "mindful_eating": 0.0
+                }
+                
+                # Update with LLM scores
+                for key in default_tools:
+                    if key in tools:
+                        # Ensure score is float and in valid range
+                        score = float(tools[key])
+                        default_tools[key] = max(0.0, min(100.0, score))
+                
+                print(f"🎯 Tool recommendations generated: {sum(1 for v in default_tools.values() if v >= 50)} highly relevant")
+                return default_tools
+            else:
+                print("⚠️ Could not extract JSON from LLM response, using fallback")
+                return self._fallback_tool_extraction(response_text)
+                
+        except Exception as e:
+            print(f"❌ Error in LLM tool analysis: {e}")
+            return self._fallback_tool_extraction(response_text)
+    
+    def _fallback_tool_extraction(self, response_text: str) -> Dict[str, float]:
+        """
+        Fallback keyword-based tool extraction with probability scores.
+        Used when LLM analysis fails.
+        """
+        # Initialize all tools at 0
+        tools = {
+            "diaphragmatic_breathing": 0.0,
+            "box_breathing": 0.0,
+            "four_seven_eight_breathing": 0.0,
+            "pursed_lip_breathing": 0.0,
+            "body_mapping": 0.0,
+            "wave_breathing": 0.0,
+            "self_hug": 0.0,
+            "five_four_three_two_one": 0.0,
+            "texture_focus": 0.0,
+            "mental_grounding": 0.0,
+            "body_scan_meditation": 0.0,
+            "mindful_walking": 0.0,
+            "mindful_eating": 0.0
+        }
+        
+        response_lower = response_text.lower()
+        
+        # Keyword mappings with scores
+        keyword_scores = {
+            # Breathing exercises
+            "diaphragmatic_breathing": [
+                ("diaphragmatic breathing", 95.0),
+                ("belly breath", 85.0),
+                ("deep breath", 60.0),
+                ("breath deeply", 55.0)
+            ],
+            "box_breathing": [
+                ("box breathing", 95.0),
+                ("4-4-4-4", 90.0),
+                ("equal breath", 70.0)
+            ],
+            "four_seven_eight_breathing": [
+                ("4-7-8 breathing", 95.0),
+                ("four seven eight", 95.0),
+                ("sleep breath", 75.0)
+            ],
+            "pursed_lip_breathing": [
+                ("pursed lip", 95.0),
+                ("pursed-lip", 95.0),
+                ("slow exhale", 70.0),
+                ("gentle exhale", 65.0),
+                ("breathe out slowly", 60.0)
+            ],
+            # Body relaxation
+            "body_mapping": [
+                ("body mapping", 95.0),
+                ("body tension", 70.0),
+                ("where you feel", 60.0)
+            ],
+            "wave_breathing": [
+                ("wave breathing", 95.0),
+                ("wave breath", 90.0),
+                ("rhythmic breath", 65.0)
+            ],
+            "self_hug": [
+                ("self-hug", 95.0),
+                ("self hug", 95.0),
+                ("hug yourself", 85.0),
+                ("self-compassion", 60.0)
+            ],
+            # Grounding techniques
+            "five_four_three_two_one": [
+                ("5-4-3-2-1", 95.0),
+                ("five things", 80.0),
+                ("sensory grounding", 75.0),
+                ("what you see", 65.0),
+                ("notice around you", 55.0)
+            ],
+            "texture_focus": [
+                ("texture focus", 95.0),
+                ("feel the texture", 85.0),
+                ("texture", 70.0),
+                ("touch something", 60.0),
+                ("feeling something physical", 65.0)
+            ],
+            "mental_grounding": [
+                ("mental grounding", 95.0),
+                ("racing thoughts", 70.0),
+                ("slow your thoughts", 65.0)
+            ],
+            # Meditation
+            "body_scan_meditation": [
+                ("body scan", 95.0),
+                ("scan your body", 85.0),
+                ("progressive relaxation", 80.0)
+            ],
+            "mindful_walking": [
+                ("mindful walk", 95.0),
+                ("walking meditation", 90.0),
+                ("mindful step", 80.0)
+            ],
+            "mindful_eating": [
+                ("mindful eat", 95.0),
+                ("mindful meal", 85.0),
+                ("eating meditation", 80.0)
+            ]
+        }
+        
+        # Scan for keywords and assign highest matching score
+        for tool_key, keywords in keyword_scores.items():
+            max_score = 0.0
+            for keyword, score in keywords:
+                if keyword in response_lower:
+                    max_score = max(max_score, score)
+            tools[tool_key] = max_score
+        
+        # Context-based boosting for implicit suggestions
+        if any(word in response_lower for word in ["anxiety", "anxious", "panic", "overwhelm"]):
+            if tools["pursed_lip_breathing"] < 50:
+                tools["pursed_lip_breathing"] = max(tools["pursed_lip_breathing"], 60.0)
+            if tools["five_four_three_two_one"] < 50:
+                tools["five_four_three_two_one"] = max(tools["five_four_three_two_one"], 55.0)
+        
+        if any(word in response_lower for word in ["sleep", "rest", "tired", "exhausted"]):
+            if tools["four_seven_eight_breathing"] < 50:
+                tools["four_seven_eight_breathing"] = max(tools["four_seven_eight_breathing"], 65.0)
+            if tools["body_scan_meditation"] < 50:
+                tools["body_scan_meditation"] = max(tools["body_scan_meditation"], 60.0)
+        
+        if any(word in response_lower for word in ["tension", "tight", "tense", "body"]):
+            if tools["body_mapping"] < 50:
+                tools["body_mapping"] = max(tools["body_mapping"], 60.0)
+        
+        return tools
 
 
 # ============================================================================

@@ -101,6 +101,25 @@ class ChatResponse(BaseModel):
     response: Optional[str] = None
     message: str
     chat_history_saved: bool = False
+    recommended_tools: Optional[Dict[str, float]] = {
+        # Breathing Exercises (0.0 to 100.0 probability score)
+        "diaphragmatic_breathing": 0.0,
+        "box_breathing": 0.0,
+        "four_seven_eight_breathing": 0.0,
+        "pursed_lip_breathing": 0.0,
+        # Body Relaxation
+        "body_mapping": 0.0,
+        "wave_breathing": 0.0,
+        "self_hug": 0.0,
+        # Grounding Techniques
+        "five_four_three_two_one": 0.0,
+        "texture_focus": 0.0,
+        "mental_grounding": 0.0,
+        # Mindfulness Meditation
+        "body_scan_meditation": 0.0,
+        "mindful_walking": 0.0,
+        "mindful_eating": 0.0
+    }
 
 
 class ChatHistoryResponse(BaseModel):
@@ -355,11 +374,12 @@ async def chat(request: ChatRequest):
         print(f"💡 Loaded {len(key_insights)} key insights for context")
         
         # Generate AI response using persona + recent history + key insights
-        ai_response = persona_architect.chat(
+        # Returns tuple: (response_text, recommended_tools)
+        ai_response, recommended_tools = persona_architect.chat(
             user_message=request.message,
             persona=persona,
             chat_history=chat_history,
-            key_insights=key_insights  # ← NEW: Long-term memory
+            key_insights=key_insights
         )
         
         print(f"✅ Generated AI response ({len(ai_response)} chars)")
@@ -426,7 +446,8 @@ async def chat(request: ChatRequest):
             success=True,
             response=ai_response,
             message="Chat response generated successfully",
-            chat_history_saved=True
+            chat_history_saved=True,
+            recommended_tools=recommended_tools
         )
         
     except HTTPException:
