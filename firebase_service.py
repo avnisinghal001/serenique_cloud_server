@@ -297,7 +297,8 @@ class FirebaseService:
         user_id: str,
         role: str,
         content: str,
-        metadata: Optional[Dict[str, Any]] = None
+        metadata: Optional[Dict[str, Any]] = None,
+        recommended_tools: Optional[Dict[str, float]] = None
     ) -> bool:
         """
         Save a chat message to Firestore.
@@ -309,6 +310,7 @@ class FirebaseService:
             role: "user" or "assistant"
             content: Message text
             metadata: Optional metadata (mood, context, etc.)
+            recommended_tools: Optional tool recommendations with scores (assistant messages only)
         
         Returns:
             bool: True if successful, False otherwise
@@ -323,6 +325,10 @@ class FirebaseService:
             
             if metadata:
                 message_data["metadata"] = metadata
+            
+            # Add recommended_tools for assistant messages
+            if role == "assistant" and recommended_tools:
+                message_data["recommended_tools"] = recommended_tools
             
             # Save to chat_history/{user_id}/messages subcollection
             messages_ref = self.db.collection("chat_history").document(user_id).collection("messages")

@@ -403,7 +403,8 @@ async def chat(request: ChatRequest):
             metadata={
                 "model": MODEL_NAME,
                 "timestamp": datetime.utcnow().isoformat()
-            }
+            },
+            recommended_tools=recommended_tools  # Add recommended tools to the saved message
         )
         
         # 🧠 NEW: Extract and save key insights from this conversation
@@ -770,7 +771,7 @@ def read_root():
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Serenique + Gemini 2.0</title>
+        <title>Serenique + Gemini 2.5</title>
         <link rel="icon" type="image/x-icon" href="/favicon.ico">
         <style>
             * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -916,7 +917,7 @@ def read_root():
             </nav>
         </header>
         <main>
-            <h1>Serenique + Gemini 2.0 Flash</h1>
+            <h1>Serenique + Gemini 2.5 Flash</h1>
             <p class="subtitle">AI-powered mental wellness chatbot with personalized personas</p>
             
             <pre><code><span class="keyword">from</span> <span class="module">langchain_google_genai</span> <span class="keyword">import</span> <span class="class">ChatGoogleGenerativeAI</span>
