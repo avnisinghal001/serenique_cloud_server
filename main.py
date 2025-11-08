@@ -383,6 +383,8 @@ async def chat(request: ChatRequest):
         )
         
         print(f"✅ Generated AI response ({len(ai_response)} chars)")
+        print(f"🔧 Recommended tools: {recommended_tools}")
+        print(f"🔧 Type of recommended_tools: {type(recommended_tools)}")
         
         # Save user message to Firebase
         firebase_service.save_chat_message(

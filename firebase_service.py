@@ -329,10 +329,14 @@ class FirebaseService:
             # Add recommended_tools for assistant messages
             if role == "assistant" and recommended_tools:
                 message_data["recommended_tools"] = recommended_tools
+                print(f"🔧 Adding recommended_tools to message: {recommended_tools}")
             
             # Save to chat_history/{user_id}/messages subcollection
             messages_ref = self.db.collection("chat_history").document(user_id).collection("messages")
-            messages_ref.add(message_data)
+            doc_ref = messages_ref.add(message_data)
+            print(f"✅ Saved {role} message for user {user_id} with ID: {doc_ref[1].id}")
+            if role == "assistant" and recommended_tools:
+                print(f"✅ Recommended tools saved: {list(recommended_tools.keys())}")
             
             # Update last message timestamp in parent doc
             chat_ref = self.db.collection("chat_history").document(user_id)
