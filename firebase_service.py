@@ -385,12 +385,18 @@ class FirebaseService:
             chat_history = []
             for msg in messages:
                 msg_data = msg.to_dict()
-                chat_history.append({
+                message_dict = {
                     "role": msg_data.get("role"),
                     "content": msg_data.get("content"),
                     "timestamp": msg_data.get("created_at"),
                     "metadata": msg_data.get("metadata", {})
-                })
+                }
+                
+                # Include recommended_tools if present (only for assistant messages)
+                if msg_data.get("recommended_tools"):
+                    message_dict["recommended_tools"] = msg_data.get("recommended_tools")
+                
+                chat_history.append(message_dict)
             
             print(f"✅ Retrieved {len(chat_history)} messages for user {user_id} (newest first)")
             return chat_history
@@ -448,12 +454,18 @@ class FirebaseService:
             chat_history = []
             for msg in messages:
                 msg_data = msg.to_dict()
-                chat_history.append({
+                message_dict = {
                     "role": msg_data.get("role"),
                     "content": msg_data.get("content"),
                     "timestamp": msg_data.get("created_at"),
                     "metadata": msg_data.get("metadata", {})
-                })
+                }
+                
+                # Include recommended_tools if present (only for assistant messages)
+                if msg_data.get("recommended_tools"):
+                    message_dict["recommended_tools"] = msg_data.get("recommended_tools")
+                
+                chat_history.append(message_dict)
             
             print(f"✅ Retrieved {len(chat_history)} messages for user {user_id} on {date} (newest first)")
             return chat_history
@@ -517,12 +529,18 @@ class FirebaseService:
             
             for doc in docs:
                 data = doc.to_dict()
-                messages.append({
+                message_dict = {
                     'role': data.get('role', 'user'),
                     'content': data.get('content', ''),
                     'timestamp': data.get('created_at', ''),
                     'metadata': data.get('metadata', {})
-                })
+                }
+                
+                # Include recommended_tools if present (only for assistant messages)
+                if data.get("recommended_tools"):
+                    message_dict["recommended_tools"] = data.get("recommended_tools")
+                
+                messages.append(message_dict)
             
             # Reverse to chronological order (oldest first)
             messages.reverse()
