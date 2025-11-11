@@ -1034,12 +1034,12 @@ You're a companion who:
             recommended_tools = self._extract_tool_recommendations(response_text)
             
             print(f"🔧 Extracted tool recommendations:")
-            high_priority = {k: v for k, v in recommended_tools.items() if v >= 80}
-            medium_priority = {k: v for k, v in recommended_tools.items() if 50 <= v < 80}
+            high_priority = {k: v for k, v in recommended_tools.items() if v >= 90}
+            medium_priority = {k: v for k, v in recommended_tools.items() if 50 <= v < 90}
             if high_priority:
-                print(f"   HIGH (>=80): {high_priority}")
+                print(f"   HIGH (>=90): {high_priority}")
             if medium_priority:
-                print(f"   MEDIUM (50-79): {medium_priority}")
+                print(f"   MEDIUM (60-89): {medium_priority}")
             if not high_priority and not medium_priority:
                 print(f"   No significant tool recommendations (all <50)")
             
