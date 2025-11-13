@@ -1,898 +1,1350 @@
-# 🌿 Serenique Cloud Server: AI-Powered Mental Wellness Companion# Serenique Cloud Server - Vercel Deployment Ready# Serenique Mental Wellness API - Gemini Edition
+# 🍃 Serenique - AI Mental Wellness Companion
 
-**Built by Avni Singhal** | [LinkedIn](https://www.linkedin.com/in/avnisinghal001) | [GitHub](https://github.com/avnisinghal001)
+> **Built by [Avni Singhal](https://www.linkedin.com/in/avnisinghal001)** | **[GitHub](https://github.com/avnisinghal001)**
 
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.109.0-009688?style=flat&logo=fastapi)](https://fastapi.tiangolo.com/)
+[![Google Gemini](https://img.shields.io/badge/Gemini-2.5%20Flash-4285F4?style=flat&logo=google)](https://ai.google.dev/)
+[![LangChain](https://img.shields.io/badge/LangChain-0.1.0-121212?style=flat)](https://www.langchain.com/)
+[![Firebase](https://img.shields.io/badge/Firebase-Firestore-FFCA28?style=flat&logo=firebase)](https://firebase.google.com/)
+[![Python](https://img.shields.io/badge/Python-3.9+-3776AB?style=flat&logo=python&logoColor=white)](https://www.python.org/)
 
-
-**Built With:** FastAPI ⚡ | LangChain 🧠 | Google Gemini 2.5 Flash 🤖 | Firebase 🔥 | Flutter 📱 | Vercel 🚀
-
-This is the **production-ready** FastAPI backend for Serenique Mental Wellness App.AI-powered mental wellness chatbot with **Google Gemini 2.0 Flash** based personalized personas using LangChain.
-
----
-
-
-
-## 🌸 Overview
-
-## 📁 Project Structure## 🚀 Features
-
-**Serenique Cloud Server** is the intelligent backend powering **Serebot** — a calm, wise, and compassionate AI mental wellness mentor designed specifically for college students. 
-
-
-
-This isn't just another chatbot. Serenique creates a **personalized mental health companion** that:
-
-- 🧘 Understands your unique personality through an adaptive quiz system```- **Gemini 2.0 Flash Integration**: Lightning-fast AI-powered persona generation
-
-- 💬 Responds with empathy, grounded advice, and evidence-based therapeutic techniques
-
-- 🎯 Recommends **context-aware wellness tools** (breathing exercises, grounding techniques, mindfulness practices)serenique_cloud_server/          ← ROOT (deploy this folder to Vercel)- **Peaceful Mental Health Tone**: Calm, validating, supportive communication style
-
-- 📊 Tracks your emotional state and adapts its responses in real-time
-
-- 🌙 Provides crisis support resources when detecting distress signals├── main.py                       ← FastAPI app with all endpoints- **Long-Term Memory System**: Saves all conversations for context across sessions
-
-
-
-**Mission:** To be the calm in someone's storm — helping students move from *"I'm overwhelmed"* → *"I can handle this."*├── firebase_service.py           ← Firebase Firestore operations- **LangChain Framework**: Structured output parsing and prompt engineering
-
-
-
----├── langchain_persona_architect.py ← Gemini AI + LangChain integration- **Firebase Firestore**: Dual storage (chat_history + memories)
-
-
-
-## 🛠️ Tech Stack├── insight_extractor.py          ← Key insights for long-term memory- **FastAPI Backend**: High-performance async API
-
-
-
-| Layer | Technology |├── serenique-avni-firebase-adminsdk-*.json ← Firebase credentials- **Personalized Analysis**: Quiz-based psychological profiling
-
-|-------|-----------|
-
-| **Backend Framework** | FastAPI (Python 3.9+) |├── .env                          ← Environment variables (LOCAL ONLY)- **Live State Tracking**: Real-time mood and wellness tool usage awareness
-
-| **AI Engine** | LangChain + Google Gemini 2.5 Flash |
-
-| **Vector Intelligence** | Custom Tool Recommendation Engine |├── .gitignore                    ← Git ignore rules
-
-| **Database** | Firebase Firestore (NoSQL) |
-
-| **Authentication** | Firebase Auth |├── .vercelignore                 ← Vercel ignore rules## 🔧 Setup
-
-| **Frontend** | Flutter (Dart) |
-
-| **Deployment** | Vercel Serverless Functions |├── requirements.txt              ← Python dependencies
-
-| **API Architecture** | RESTful with async support |
-
-├── vercel.json                   ← Vercel configuration### 1. Install Dependencies
+**Serenique** is an AI-powered mental wellness chatbot designed specifically for college students dealing with stress, anxiety, sleep issues and academic pressure. Built with cutting-edge AI technology and psychological principles, Serenique provides personalized, empathetic support through an intelligent conversational interface.
 
 ---
 
-├── VERCEL_DEPLOYMENT_CHECKLIST.md ← Complete deployment guide
+## 📍 Table of Contents
 
-## ⚡️ Core Features
+- [Project Overview](#-project-overview)
+- [System Architecture](#️-system-architecture)
+- [OOP Design Principles](#-oop-design-principles)
+- [AI & Prompt Engineering](#-ai--prompt-engineering)
+- [API Architecture (Mermaid Diagrams)](#-api-architecture-mermaid-diagrams)
+- [Tech Stack](#️-tech-stack)
+- [Features](#-features)
+- [Project Structure](#-project-structure)
+- [Setup & Installation](#️-setup--installation)
+- [API Endpoints](#-api-endpoints)
+- [Core Components](#-core-components)
+- [Workflow & Data Flow](#-workflow--data-flow)
+- [Frontend Integration](#-frontend-integration)
+- [Deployment](#-deployment)
 
-│```bash
+---
 
-✅ **AI Persona Generation** — Analyzes quiz responses to create deeply personalized mental health profiles  
+## ⭐ Project Overview
 
-✅ **Dynamic State Tracking** — Monitors mood, stress levels, and engagement in real-time  ├── api/pip install -r requirements.txt
+### The Problem
+College students face unprecedented mental health challenges:
+- **75%** experience moderate to severe stress
+- **60%** struggle with anxiety and academic pressure
+- **45%** report poor sleep quality affecting their well-being
+- Traditional mental health resources are often inaccessible, expensive or stigmatized
 
-✅ **Intelligent Tool Recommendations** — 95%+ confidence threshold for suggesting wellness exercises  
+### The Solution
+**Serenique** provides:
+- **24/7 accessible** AI mental wellness support
+- **Personalized** responses based on psychological profiling
+- **Evidence-based** techniques (Breathing, mindfulness, grounding)
+- **Long-term memory** that remembers past conversations
+- **Proactive support** when users need check-ins
+- **Privacy-first** approach with secure Firebase storage
 
-✅ **Context-Aware Conversations** — Remembers chat history and adapts tone based on emotional state  │   └── index.py                  ← Vercel serverless entry point```
+### Tech Innovation
+- **Google Gemini 2.5 Flash** for fast, empathetic AI responses
+- **LangChain framework** for structured AI outputs and prompt engineering
+- **FastAPI** for high-performance async REST API
+- **Firebase Firestore** for real-time data synchronization
+- **Flutter** frontend for beautiful cross-platform mobile experience
 
-✅ **13 Evidence-Based Wellness Tools** — Breathing exercises, body relaxation, grounding techniques, mindfulness meditations  
+---
 
-✅ **Crisis Detection & Resources** — Identifies distress signals and provides helpline information  │
+## ⭐ System Architecture
 
-✅ **Chat History Management** — Date-wise storage and retrieval with pagination support  
+```mermaid
+graph TB
+    subgraph "Frontend (Flutter Mobile App)"
+        A["Quiz Screen"] --> B["Persona Generation"]
+        B --> C["Chat Interface"]
+        C --> D["Wellness Tools"]
+    end
+    
+    subgraph "Backend (FastAPI Server)"
+        F["API Gateway<br/>main.py"] --> G["Persona Architect<br/>langchain_persona_architect.py"]
+        F --> H["Firebase Service<br/>firebase_service.py"]
+        F --> I["Insight Extractor<br/>insight_extractor.py"]
+    end
+    
+    subgraph "AI Layer"
+        J["Google Gemini 2.5 Flash"] --> K["LangChain Chains"]
+        K --> L["Structured Output Parser"]
+    end
+    
+    subgraph "Data Layer (Firebase Firestore)"
+        M[(user_persona<br/>collection)] --> N[(chat_history<br/>collection)]
+        N --> O[(key_insights<br/>collection)]
+        O --> P[(users<br/>collection)]
+    end
+    
+    A -- "Quiz Responses" --> F
+    F -- "Generate Persona" --> G
+    G -- "LLM Request" --> J
+    J -- "Parsed Profile" --> G
+    G -- "Save Persona" --> H
+    H -- "Store" --> M
 
-✅ **Insight Extraction** — Long-term memory system that identifies emotional patterns  └── public/                       ← Static files (if any)### 2. Configure Google API Key
+    C -- "Chat Message" --> F
+    F -- "Context" --> H
+    H -- "Load History" --> N
+    H -- "Load Insights" --> O
+    F -- "Generate Response" --> G
+    G -- "AI Call" --> J
+    J -- "Response" --> F
+    F -- "Save Chat" --> H
+    H -- "Store" --> N
+    F -- "Extract Insights" --> I
+    I -- "Save Key Moments" --> H
+    H -- "Store" --> O
 
-✅ **CORS-Enabled** — Seamless Flutter app integration  
+    D -- "Tool Usage" --> F
+    F -- "Update State" --> H
+    H -- "Update" --> M
 
-✅ **Production-Ready** — Deployed on Vercel with environment-based configuration  ```
-
-
-
----Set your Google Gemini API key as an environment variable:
-
-
-
-## 📂 Project Structure## 🚀 Quick Start (Local Development)
-
-
-
-```**Windows PowerShell:**
-
-serenique_cloud_server/
-
-│```bash```powershell
-
-├── main.py                          # FastAPI application entrypoint
-
-├── langchain_persona_architect.py   # AI persona generation & chat logic# 1. Install dependencies$env:GOOGLE_API_KEY="your-gemini-api-key-here"
-
-├── firebase_service.py              # Firebase Firestore operations
-
-├── insight_extractor.py             # Long-term emotional pattern analysispip install -r requirements.txt```
-
-├── vercel.json                      # Vercel deployment config
-
-├── requirements.txt                 # Python dependencies
-
-├── .env                            # Environment variables (not in repo)
-
-│# 2. Set up environment variables**Linux/Mac:**
-
-├── api/
-
-│   └── index.py                    # Vercel serverless handler# Copy .env.example to .env and fill in your keys```bash
-
-│
-
-└── vc/fastapi/                     # Vercel compatibility layerexport GOOGLE_API_KEY="your-gemini-api-key-here"
-
+    style F fill:#4285F4,color:#fff
+    style G fill:#0F9D58,color:#fff
+    style J fill:#DB4437,color:#fff
+    style M fill:#F4B400,color:#000
+    style N fill:#F4B400,color:#000
+    style O fill:#F4B400,color:#000
 ```
 
-# 3. Run the server```
+### Architecture Layers
+
+1. **Presentation Layer** (Flutter)
+   - Quiz-based onboarding
+   - Real-time chat interface
+   - Wellness tool integrations
+
+2. **Application Layer** (FastAPI)
+   - RESTful API endpoints
+   - Request validation with Pydantic
+   - CORS middleware for cross-origin requests
+   - Async request handling
+
+3. **Business Logic Layer**
+   - Persona generation from quiz analysis
+   - Context-aware chat response generation
+   - Live state management
+   - Insight extraction and memory management
+
+4. **AI Layer** (Google Gemini + LangChain)
+   - Prompt engineering and templating
+   - Structured output parsing
+   - Multi-turn conversation handling
+   - Tool recommendation intelligence
+
+5. **Data Layer** (Firebase Firestore)
+   - User persona storage
+   - Chat history 
+   - Key insights for long-term memory
+   - User authentication integration
 
 ---
 
-python -m uvicorn main:app --reload --port 5001
+## ⭐ OOP Design Principles
 
-## 🌐 API Endpoints
+### Core Design Patterns Used
 
-**Optional Configuration:**
+#### 1. **Singleton Pattern** (`FirebaseService`)
+```python
+class FirebaseService:
+    _instance = None
+    _initialized = False
+    
+    def __new__(cls):
+        """Ensures only one Firebase Admin SDK instance exists"""
+        if cls._instance is None:
+            cls._instance = super(FirebaseService, cls).__new__(cls)
+        return cls._instance
+```
 
-### 🏥 Health Check
+**Why?** Firebase Admin SDK should only be initialized once to prevent connection overhead and resource waste.
 
-```http# 4. Open browser```bash
+#### 2. **Facade Pattern** (`LangChainPersonaArchitect`)
+Simplifies complex interactions with LangChain, Gemini API, and data models:
+```python
+class LangChainPersonaArchitect:
+    def generate_persona(self, user_id, quiz_data) -> UserPersona:
+        # Hides complexity of:
+        # - LLM prompt engineering
+        # - Output parsing
+        # - Data validation
+        # - Error handling
+```
 
-GET /api/health
+**Why?** Provides a clean, simple interface for persona generation while hiding the complexity of LangChain chains, prompt templates, and parsing logic.
 
-```# http://localhost:5001       - Home pageexport MODEL_NAME="gemini-2.5-flash"  # Default model
+#### 3. **Strategy Pattern** (Coping Mechanisms)
+Different therapeutic approaches based on personality:
+```python
+class CopingMechanism(str, Enum):
+    ANALYTICAL = "analytical"  # CBT-based approaches
+    AFFECTIVE = "affective"    # Emotion-focused therapy
+    MIXED = "mixed"            # Hybrid approach
+```
 
-**Response:**
+**Why?** Allows runtime selection of therapeutic strategies based on user personality profile.
 
-```json# http://localhost:5001/docs  - API documentationexport MODEL_TEMPERATURE="0.7"            # Default temperature
+#### 4. **Builder Pattern** (System Prompt Construction)
+Complex prompt building with multiple components:
+```python
+def chat(self, user_message, persona, chat_history, key_insights):
+    # Builds comprehensive system prompt from:
+    # - Personality profile
+    # - Live user state
+    # - Sentiment analysis
+    # - Key insights
+    # - Therapeutic guidelines
+    system_prompt = self._build_system_prompt(...)
+```
 
-{
+#### 5. **Observer Pattern** (State Updates)
+Live user state updates trigger adaptive responses:
+```python
+def update_user_state(self, current_state, action):
+    # Observes user actions and updates state
+    if action_type == "breathing_exercise":
+        # Update mood, track success, check for support needs
+```
 
-  "status": "healthy",``````
+### SOLID Principles in Action
 
-  "gemini_configured": true,
+📌 **Single Responsibility Principle**
+- `FirebaseService`: Only handles database operations
+- `InsightExtractor`: Only extracts key insights from conversations
+- `LangChainPersonaArchitect`: Only handles AI persona logic
 
-  "firebase_initialized": true
+📌 **Open/Closed Principle**
+- New wellness tools can be added without modifying core state update logic
+- New insight types can be added to `InsightExtractor` without changing existing code
 
-}
+📌 **Liskov Substitution Principle**
+- All Enum types (`CommunicationStyle`, `Mood`, etc.) are interchangeable where their base type is expected
 
-```## 📡 API Endpoints### 3. Get Google Gemini API Key
+📌 **Interface Segregation Principle**
+- Pydantic models define minimal required fields
+- Optional parameters use `Optional` type hints
 
-
+📌 **Dependency Inversion Principle**
+- High-level modules (`main.py`) depend on abstractions (Pydantic models)
+- Low-level modules implement these abstractions
 
 ---
 
+## ⭐ AI & Prompt Engineering
 
+### Agentic Workflow Architecture
 
-### 🧠 Generate Persona- `POST /api/persona/generate` - Generate AI persona from quiz1. Go to [Google AI Studio](https://makersuite.google.com/app/apikey)
+Serenique implements an **intelligent agentic AI system** with multiple specialized capabilities:
 
-```http
-
-POST /api/persona/generate- `GET /api/persona/{user_id}` - Get user's persona2. Create a new API key
-
+```mermaid
+graph LR
+    A[User Input] --> B{Intent Detection}
+    B -->|Quiz Analysis| C[Persona Generation Agent]
+    B -->|Chat Message| D[Conversation Agent]
+    B -->|Crisis Detection| E[Emergency Response Agent]
+    
+    C --> F[Gemini 2.5 Flash]
+    D --> F
+    E --> F
+    
+    F --> G[Structured Parser]
+    G --> H[Response Generator]
+    
+    H --> I{Post-Processing}
+    I --> J[Tool Recommender]
+    I --> K[Insight Extractor]
+    I --> L[State Updater]
+    
+    J --> M[User Response]
+    K --> N[Long-term Memory]
+    L --> O[Firebase Update]
+    
+    style C fill:#4285F4,color:#fff
+    style D fill:#0F9D58,color:#fff
+    style E fill:#DB4437,color:#fff
+    style F fill:#F4B400,color:#000
 ```
 
-**Description:** Analyzes quiz responses to create a personalized mental wellness profile.- `POST /api/persona/update-state` - Update user's live state3. Copy and set it as `GOOGLE_API_KEY`
+### Core Prompt Engineering Techniques
 
+#### 1. **System Persona Design**
 
+The AI operates under a carefully crafted identity:
 
-**Request Body:**- `POST /api/chat` - Chat with AI (uses persona + history + insights)
+```python
+core_identity = """
+You are **Serebot**, a calm, wise, and solution-oriented mental well-being AI mentor 
+created by **Avni Singhal**.
 
-```json
+You embody peace, compassion, and grounded understanding.
+You are a **safe harbor** — calm waters where users can rest and regain clarity.
 
-{- `GET /api/insights/{user_id}` - Get key insights## 🏃 Running Locally
-
-  "user_id": "firebase_user_id",
-
-  "quiz_data": {- `DELETE /api/insights/{user_id}/{insight_id}` - Delete insight
-
-    "1": "a",
-
-    "2": "c",- `GET /api/health` - Health checkStart the development server:
-
-    "3": "b"
-
-  }- `GET /api/stats` - Statistics
-
-}
-
-```- `GET /` - Home page```bash
-
-
-
-**Response:**uvicorn main:app --reload --port 5001
-
-```json
-
-{## 🔧 Environment Variables```
-
-  "success": true,
-
-  "user_persona": {
-
-    "personality_profile": {
-
-      "communication_style": "direct",Required in `.env` (local) or Vercel Dashboard (production):Server will be available at:
-
-      "primary_stressor": "academic_pressure",
-
-      "coping_mechanism": "problem_solving",- **API**: http://localhost:5001
-
-      "energy_level": "moderate",
-
-      "social_preference": "balanced"```env- **Swagger Docs**: http://localhost:5001/docs
-
-    },
-
-    "live_user_state": {GOOGLE_API_KEY=your_gemini_api_key_here- **Health Check**: http://localhost:5001/api/health
-
-      "current_mood": "neutral",
-
-      "stress_level": 5,MODEL_NAME=gemini-2.5-flash
-
-      "engagement_level": "active"
-
-    }MODEL_TEMPERATURE=0.7## 📡 API Endpoints
-
-  }
-
-}FIREBASE_PROJECT_ID=serenique-avni
-
+Your purpose:
+1. **Soothe first** – create emotional safety and validation
+2. **Guide second** – offer thoughtful, actionable steps
+3. **Empower third** – encourage progress and autonomy, never dependency
+"""
 ```
 
-```### 1. Generate Persona
+**Key Principles:**
+- **Emotional Pacing**: Soothe → Guide → Empower (3-phase response structure)
+- **Authenticity**: "Safe harbor" metaphor creates trust
+
+#### 2. **Dynamic Context Injection**
+
+The prompt adapts based on real-time user state:
+
+```python
+# Sentiment-based adaptation
+if mood == "anxious":
+    context += """
+    **CURRENT SENTIMENT: ANXIOUS/OVERWHELMED**
+    - Use slow, steady language—avoid rushing
+    - Acknowledge anxiety without amplifying it
+    - Suggest: Box Breathing, 5-4-3-2-1 Grounding
+    """
+elif mood == "happy":
+    context += """
+    **CURRENT SENTIMENT: POSITIVE MOMENTUM**
+    - Match their energy naturally
+    - Reinforce what's working
+    - Build on momentum without pressuring
+    """
+```
+
+#### 3. **Long-Term Memory Integration**
+
+Key insights from past conversations are injected:
+
+```python
+insights_context = """
+📌 IMPORTANT PAST MOMENTS (Long-term Memory):
+  • [STRESSOR] High stress about midterm exams
+    Context: "I have 3 exams next week..." (Nov 10, 3:42 PM)
+  • [BREAKTHROUGH] Realized exam anxiety triggers perfectionism
+    Context: "I understand now why I get so anxious..." (Nov 11, 10:15 AM)
+    
+⚠️ REFERENCE THESE NATURALLY:
+  - "I remember you mentioned that exam stress..."
+  - "Yesterday you realized your perfectionism..."
+"""
+```
+
+**Why This Works:**
+- Creates continuity across sessions
+- Makes AI feel like it "remembers" you
+- Enables deeper, more meaningful conversations
+
+#### 4. **Hallucination Prevention Protocol**
+
+Strict guidelines prevent AI from fabricating information:
+
+```python
+safety_protocol = """
+FACTUAL & HALLUCINATION SAFETY PROTOCOL:
+
+1. Do not invent facts, statistics, events, or names
+2. If unsure, respond with gentle transparency:
+   > "I don't have verified information on that, but we can explore general ways..."
+3. Ground suggestions in well-known practices (mindfulness, CBT, breathing)
+4. Never simulate real people or organizations unless publicly verifiable
+5. Always default to safety, calmness, and truthfulness over fluency
+"""
+```
+
+#### 5. **Tool Recommendation Intelligence**
+
+AI analyzes responses to suggest relevant wellness tools:
+
+```python
+analysis_prompt = f"""
+Analyze this AI response and determine which wellness tools are most relevant.
+
+Score each tool from 0-100 based on:
+- Direct mentions (highest weight)
+- Implicit relevance to symptoms
+- Contextual fit for the situation
+
+Tools:
+- diaphragmatic_breathing: Deep belly breathing for general stress relief
+- box_breathing: 4-4-4-4 technique for focus and mental clarity
+- five_four_three_two_one: Sensory grounding during panic
+...
+
+Return JSON with scores:
+{{
+  "diaphragmatic_breathing": 0.0,
+  "box_breathing": 85.0,  # Mentioned for focus
+  "five_four_three_two_one": 70.0  # Highly relevant for anxiety
+  ...
+}}
+"""
+```
+
+**Scoring Logic:**
+- **90-100**: Explicitly mentioned in response
+- **70-89**: Strongly implied/highly relevant
+- **50-69**: Moderately relevant
+- **30-49**: Somewhat relevant
+- **0-29**: Low relevance
+
+#### 6. **Crisis Detection & Emergency Response**
+
+Immediate protective response for self-harm indicators:
+
+```python
+crisis_patterns = [
+    'hurt myself', 'harm myself', 'kill myself', 'suicide',
+    'want to die', 'better off dead', 'self harm', 'cutting'
+]
+
+crisis_response = """
+I hear how painful this feels right now. You're not alone.
+It's really important to reach out for help — if you're in India, 
+you can contact **AASRA at 022 2754 6669**, or visit **findahelpline.com**.
+You don't have to face this alone — help is available.
+"""
+```
+
+### Prompt Structure Breakdown
+
+#### Quiz Analysis Prompt
+```python
+quiz_prompt = """
+You are an expert clinical psychologist specializing in personality assessment 
+for college students.
+
+Analyze these quiz responses and generate a comprehensive personality profile:
+
+Q1: "When you're stressed, how do you prefer to work through it?"
+Answer: Talk it out with someone
+
+Q2: "When you see posts about others' achievements..."
+Answer: Behind or inadequate
+
+...
+
+Generate PersonalityProfile with:
+1. Core dimensions (communication_style, primary_stressor, social_profile)
+2. Strengths and vulnerabilities
+3. Recommended therapeutic approach
+4. Complete chatbot_system_prompt (300-500 words)
+
+The system prompt should include:
+- Core identity and role
+- Tone and communication style
+- Therapeutic methodology
+- Crisis handling guidance
+"""
+```
+
+#### Chat Response Prompt
+```python
+chat_prompt = """
+[CORE IDENTITY] → Serebot by Avni Singhal
+[PERSONALITY CONTEXT] → {user's quiz-based profile}
+[LIVE STATE] → Current mood: anxious, Recent stressors: exams
+[CONVERSATION HISTORY] → Last 10 messages
+[KEY INSIGHTS] → Important past moments
+[WELLNESS TOOLS] → Available interventions
+[SENTIMENT ANALYSIS] → Needs gentle support right now
+[SAFETY PROTOCOLS] → Crisis detection, hallucination prevention
+
+User: "I can't sleep, exam tomorrow, so worried"
+
+Response:
+→ [COMFORT] "That exam anxiety keeping you up... I hear you"
+→ [GUIDE] "Let's try 4-7-8 Breathing to help you wind down"
+→ [EMPOWER] "You've prepared—your mind just needs rest now"
+"""
+```
+
+### Promptology Innovations
+
+#### Multi-Agent Coordination
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant API as FastAPI
+    participant PA as Persona Architect
+    participant IE as Insight Extractor
+    participant TR as Tool Recommender
+    participant G as Gemini AI
+    
+    U->>API: Send chat message
+    API->>PA: Load persona & context
+    PA->>G: Generate response with context
+    G-->>PA: AI response
+    PA->>TR: Extract tool recommendations
+    TR-->>PA: Scored tools (0-100)
+    PA->>IE: Extract key insights
+    IE-->>API: Significant moments
+    API->>U: Response + Tools + State update
+```
+
+#### Adaptive Prompt Chaining
+
+**Chain 1: Quiz Analysis**
+```
+Input: Raw quiz responses
+↓
+Prompt: Psychologist analyzing personality
+↓
+Output: Structured PersonalityProfile
+```
+
+**Chain 2: System Prompt Generation**
+```
+Input: PersonalityProfile
+↓
+Prompt: Create custom chatbot persona
+↓
+Output: 500-word system prompt
+```
+
+**Chain 3: Conversational Response**
+```
+Input: System prompt + context + user message
+↓
+Prompt: Empathetic response generation
+↓
+Output: Personalized reply
+```
+
+**Chain 4: Tool Recommendation**
+```
+Input: AI response text
+↓
+Prompt: Analyze wellness tool relevance
+↓
+Output: JSON with tool scores
+```
 
 ---
 
-Create personalized chatbot persona from quiz responses.
+## ⭐ API Architecture (Mermaid Diagrams)
 
-### 💬 Chat with Serebot
+### Request Flow Architecture
 
-```http## 📦 Dependencies
-
-POST /api/chat
-
-``````http
-
-**Description:** Send messages to Serebot and receive personalized, empathetic responses with tool recommendations.
-
-- **FastAPI** - Web frameworkPOST /api/persona/generate
-
-**Request Body:**
-
-```json- **LangChain + Google Generative AI** - Gemini 2.0 Flash integrationContent-Type: application/json
-
-{
-
-  "user_id": "firebase_user_id",- **Firebase Admin** - Firestore database
-
-  "message": "I'm feeling really anxious about my exams tomorrow",
-
-  "include_history": true- **Pydantic** - Data validation{
-
-}
-
-```- **Python-dotenv** - Environment variables  "user_id": "user123",
-
-
-
-**Response:**  "quiz_data": {
-
-```json
-
-{## 🚀 Deploying to Vercel    "1": "a",
-
-  "success": true,
-
-  "response": "I hear how stressful this feels right now. Exam anxiety is really common, and it's okay to feel this way...",    "2": "b",
-
-  "recommended_tools": {
-
-    "box_breathing": 98.5,### Prerequisites    ...
-
-    "four_seven_eight_breathing": 96.2,
-
-    "mental_grounding": 95.8- Vercel account    "10": "j"
-
-  },
-
-  "chat_history_saved": true- Vercel CLI installed: `npm install -g vercel`  }
-
-}
-
-```- Firebase credentials JSON file}
-
-
-
----- Google Gemini API key```
-
-
-
-### 📜 Get Chat History
-
-```http
-
-GET /api/chat/history/{user_id}?limit=50### Deployment Steps**Response:**
-
+```mermaid
+flowchart TD
+    Start([Mobile App]) --> A{Request Type?}
+    
+    A -->|POST /api/persona/generate| B[Quiz Analysis]
+    A -->|POST /api/chat| C[Chat Processing]
+    A -->|POST /api/persona/update-state| D[State Update]
+    A -->|GET /api/persona/:id| E[Load Persona]
+    
+    B --> B1[Validate Quiz Data]
+    B1 --> B2[LangChain Analysis]
+    B2 --> B3[Generate Persona]
+    B3 --> B4[Save to Firebase]
+    B4 --> B5[Return Persona]
+    
+    C --> C1[Load Persona]
+    C1 --> C2[Get Chat History<br/>10 messages cached]
+    C2 --> C3[Load Key Insights<br/>5 important moments]
+    C3 --> C4[Build Context]
+    C4 --> C5[Gemini AI Call]
+    C5 --> C6[Extract Tools]
+    C6 --> C7[Extract Insights]
+    C7 --> C8[Save to Firebase]
+    C8 --> C9[Return Response]
+    
+    D --> D1[Get Current State]
+    D1 --> D2[Apply Action]
+    D2 --> D3[Update Metrics]
+    D3 --> D4[Check Support Needs]
+    D4 --> D5[Save State]
+    
+    E --> E1[Query Firestore]
+    E1 --> E2{Found?}
+    E2 -->|Yes| E3[Return Persona]
+    E2 -->|No| E4[404 Error]
+    
+    style B fill:#4285F4,color:#fff
+    style C fill:#0F9D58,color:#fff
+    style D fill:#F4B400,color:#000
+    style E fill:#DB4437,color:#fff
 ```
 
-**Description:** Retrieve paginated chat history for a user.```json
+### Data Model Architecture
 
-
-
-**Response:**1. **Login to Vercel**{
-
-```json
-
-{   ```bash  "success": true,
-
-  "success": true,
-
-  "user_id": "firebase_user_id",   vercel login  "user_persona": {
-
-  "message_count": 24,
-
-  "messages": [   ```    "user_id": "user123",
-
-    {
-
-      "role": "user",    "personality_profile": {...},
-
-      "content": "I'm feeling anxious",
-
-      "timestamp": "2025-11-12T14:30:00Z"2. **Deploy**    "live_user_state": {...}
-
-    },
-
-    {   ```bash  },
-
-      "role": "assistant",
-
-      "content": "I hear you...",   cd serenique_cloud_server  "message": "Persona generated successfully"
-
-      "timestamp": "2025-11-12T14:30:05Z",
-
-      "recommended_tools": {   vercel --prod}
-
-        "box_breathing": 98.5
-
-      }   ``````
-
+```mermaid
+erDiagram
+    USER ||--o| USER_PERSONA : has
+    USER ||--o{ CHAT_HISTORY : creates
+    USER ||--o{ KEY_INSIGHTS : accumulates
+    
+    USER {
+        string uid PK
+        string email
+        string displayName
+        timestamp createdAt
+        boolean personaGenerated
     }
-
-  ]
-
-}
-
-```3. **Set Environment Variables** (in Vercel Dashboard)### 2. Chat with AI
-
-
-
----   - `GOOGLE_API_KEY` - Your Gemini API keySend message and get personalized response based on persona and history.
-
-
-
-### 📅 Get Chat History by Date   - `FIREBASE_CREDENTIALS` - Entire JSON from credentials file (optional, file is included)
-
-```http
-
-GET /api/chat/history/{user_id}/date?date=2025-11-12&limit=50```http
-
+    
+    USER_PERSONA {
+        string userId PK
+        object personalityProfile
+        object liveUserState
+        timestamp createdAt
+        timestamp lastUpdated
+    }
+    
+    PERSONALITY_PROFILE {
+        enum communicationStyle
+        enum primaryStressor
+        enum socialProfile
+        enum copingMechanism
+        enum stressLevel
+        array strengths
+        array vulnerabilities
+        string recommendedApproach
+        string chatbotSystemPrompt
+    }
+    
+    LIVE_USER_STATE {
+        enum currentMood
+        string lastInteraction
+        int chatMessageCount
+        int toolUsageCount
+        array recentStressors
+        array copingSuccesses
+        boolean needsCheckIn
+    }
+    
+    CHAT_HISTORY {
+        string id PK
+        string userId FK
+        enum role
+        string content
+        timestamp timestamp
+        object metadata
+        object recommendedTools
+    }
+    
+    KEY_INSIGHTS {
+        string id PK
+        string userId FK
+        enum type
+        string content
+        string originalMessage
+        timestamp timestamp
+        string priority
+    }
 ```
 
-**Description:** Retrieve chat history for a specific date.4. **Test**POST /api/chat
+### Authentication & Security Flow
 
-
-
----   ```bashContent-Type: application/json
-
-
-
-### 🔄 Update User State   curl https://your-deployment-url.vercel.app/api/health
-
-```http
-
-POST /api/persona/update-state   ```{
-
-```
-
-**Description:** Update live emotional state based on user interactions.  "user_id": "user123",
-
-
-
-**Request Body:**## ⚠️ Important Notes  "message": "I'm feeling stressed about exams",
-
-```json
-
-{  "include_history": true
-
-  "user_id": "firebase_user_id",
-
-  "action": {### For Vercel Deployment:}
-
-    "type": "tool_use",
-
-    "tool_name": "box_breathing",```
-
-    "duration": 5
-
-  }1. **In-Memory Cache**: The `_chat_cache` in `firebase_service.py` won't work on serverless. See `VERCEL_DEPLOYMENT_CHECKLIST.md` for solutions.
-
-}
-
-```**Response:**
-
-
-
----2. **Firebase Credentials**: The JSON file is included in the repo for easier deployment. Make sure your repository is **PRIVATE**!```json
-
-
-
-## 🛡️ Environment Variables{
-
-
-
-Create a `.env` file in the project root:3. **Cold Starts**: First request after idle may take 3-5 seconds due to serverless cold start.  "success": true,
-
-
-
-```env  "response": "I hear you - exam anxiety is really tough...",
-
-# Google Gemini API
-
-GOOGLE_API_KEY=your_gemini_api_key_here4. **Timeouts**: Vercel Hobby plan has 10s timeout. Optimize or upgrade to Pro for 60s.  "message": "Chat response generated successfully",
-
-MODEL_NAME=gemini-2.5-flash
-
-MODEL_TEMPERATURE=0.7  "chat_history_saved": true
-
-
-
-# Firebase Configuration## 🗂️ Migration from vc/fastapi}
-
-FIREBASE_PROJECT_ID=your_firebase_project_id
-
-FIREBASE_PRIVATE_KEY=your_firebase_private_key```
-
-FIREBASE_CLIENT_EMAIL=your_firebase_client_email
-
-All files have been copied from `vc/fastapi/` to root. You can safely delete the `vc/` folder:
-
-# LangSmith (Optional - for AI observability)
-
-LANGSMITH_API_KEY=your_langsmith_api_key**See [CHAT_API_DOCUMENTATION.md](CHAT_API_DOCUMENTATION.md) for detailed examples and integration guide.**
-
-LANGSMITH_ENDPOINT=https://api.smith.langchain.com
-
-LANGSMITH_PROJECT=serenique```bash
-
-
-
-# Server Configuration# After verifying everything works:### 3. Update User State
-
-PORT=8000
-
-ENVIRONMENT=productionrm -rf vc/Update live state based on app interactions (wellness tools, mood, etc.).
-
-```
-
+```mermaid
+sequenceDiagram
+    participant User as Mobile User
+    participant Auth as Firebase Auth
+    participant API as FastAPI Server
+    participant DB as Firestore
+    
+    User->>Auth: Sign up/Login
+    Auth-->>User: Return JWT token
+    User->>API: Request with userId
+    API->>DB: Query user_persona
+    DB-->>API: Return persona (if exists)
+    API->>API: Validate userId matches token
+    API-->>User: Protected resource
+    
+    Note over User,DB: All requests include Firebase userId
+    Note over API,DB: Server validates userId exists in auth
 ```
 
 ---
 
-```http
+## ⭐ Tech Stack
 
-## 🚀 Local Setup
+### Backend
+- **FastAPI** - High-performance async web framework
+- **Python** - Core language
+- **Uvicorn** - ASGI server for production
+- **Pydantic** - Data validation and settings management
 
-## 📚 DocumentationPOST /api/persona/update-state
+### AI/ML
+- **Google Gemini 2.5 Flash** - Large language model for conversation
+- **LangChain** - LLM application framework
+- **LangChain Google GenAI** - Gemini integration
+- **JsonOutputParser** - Structured output validation
 
-### 1️⃣ Clone the Repository
+### Database
+- **Firebase Admin SDK** - Backend authentication and database
+- **Cloud Firestore** - NoSQL document database
+- **Firebase Authentication** - User management
 
-```bashContent-Type: application/json
+### DevOps & Deployment
+- **Vercel** - Serverless deployment platform
+- **GitHub** - Version control
 
-git clone https://github.com/avnisinghal001/serenique_cloud_server.git
+### Frontend (Separate Repository)
+- **Flutter** - Cross-platform mobile framework
+- **Dart** - Programming language
+- **Firebase SDK** - Client-side integration
 
-cd serenique_cloud_server- **Full Deployment Guide**: See `VERCEL_DEPLOYMENT_CHECKLIST.md`
+---
+
+## ⭐ Features
+
+### 1. **Intelligent Persona Generation**
+- 10-question psychological quiz
+- LangChain-powered analysis using Gemini
+- Generates comprehensive personality profile:
+  - Communication style (logical/emotional/balanced)
+  - Primary stressors (academic/social/sleep/general)
+  - Social profile (introvert/extrovert/ambivert)
+  - Coping mechanisms (analytical/affective/mixed)
+  - Stress level assessment
+
+### 2. **Personalized Chat Experience**
+- Context-aware responses based on personality
+- Adapts to current mood and recent stressors
+- References past conversations naturally
+- Provides evidence-based coping strategies
+- Suggests relevant wellness tools
+
+### 3. **Long-Term Memory System**
+- Automatically extracts key insights from conversations
+- Stores important moments:
+  - **Stressors**: New stress sources mentioned
+  - **Breakthroughs**: Positive realizations
+  - **Support Needs**: Explicit help requests
+  - **Milestones**: Achievements and progress
+  - **Crisis**: Urgent situations requiring attention
+- AI references these memories in future conversations
+
+### 4. **Intelligent Tool Recommendations**
+- AI analyzes responses and suggests relevant tools
+- 13 evidence-based wellness techniques:
+  - **Breathing**: Diaphragmatic, Box, 4-7-8, Pursed-Lip
+  - **Body Relaxation**: Body Mapping, Wave Breathing, Self-Hug
+  - **Grounding**: 5-4-3-2-1, Texture Focus, Mental Grounding
+  - **Meditation**: Body Scan, Mindful Walking, Mindful Eating
+- Probability scores (0-100) for each tool
+- Tracks which tools work for each user
+
+### 5. **Live State Management**
+- Real-time mood tracking
+- Monitors wellness tool usage
+- Detects when users need check-ins
+- Tracks coping successes
+- Updates activity metrics
+
+### 6. **Performance Optimizations**
+- **Reduced context window** (10 messages vs 50)
+- **Async request handling**
+- **Connection pooling** for Firebase
+
+### 7. **Crisis Detection & Safety**
+- Automatic detection of self-harm indicators
+- Immediate compassionate response
+- Provides emergency helpline resources
+- Flags for human review
+
+### 8. **Privacy & Security**
+- End-to-end encryption with Firebase
+- User data isolation
+- No data sharing with third parties
+- GDPR-compliant storage
+- Secure API key management
+
+---
+
+## ⭐ Project Structure
 
 ```
+serenique_cloud_server/
+│
+├── main.py                          # FastAPI application & endpoints
+│   ├── /api/persona/generate        # Generate persona from quiz
+│   ├── /api/persona/:id             # Get existing persona
+│   ├── /api/persona/update-state    # Update live user state
+│   ├── /api/chat                    # Main chat endpoint
+│   ├── /api/chat/history/:id        # Get chat history
+│   ├── /api/insights/:id            # Get key insights
+│   └── /api/health                  # Health check
+│
+├── langchain_persona_architect.py   # Core AI logic
+│   ├── LangChainPersonaArchitect    # Main class
+│   ├── PersonalityProfile           # Pydantic model
+│   ├── LiveUserState                # Dynamic state model
+│   ├── UserPersona                  # Complete persona model
+│   ├── generate_persona()           # Quiz → Persona
+│   ├── chat()                       # Generate AI responses
+│   ├── update_user_state()          # State management
+│   └── _extract_tool_recommendations() # Tool scoring
+│
+├── firebase_service.py              # Firebase operations
+│   ├── FirebaseService              # Singleton class
+│   ├── save_user_persona()          # Store persona
+│   ├── get_user_persona()           # Load persona
+│   ├── save_chat_message()          # Store chat
+│   ├── get_chat_history_optimized() # Load history (cached)
+│   ├── save_key_insight()           # Store insights
+│   └── get_relevant_insights()      # Load insights
+│
+├── insight_extractor.py             # Memory extraction
+│   ├── InsightExtractor             # Main class
+│   ├── extract_insights()           # Analyze conversations
+│   ├── _detect_crisis()             # Safety detection
+│   ├── _detect_stressors()          # Stress tracking
+│   ├── _detect_breakthrough()       # Positive moments
+│   └── should_save_insight()        # Filter significant insights
+│
+├── persona_architect.py             # Legacy persona logic
+│   └── (Deprecated, replaced by LangChain version)
+│
+├── api/
+│   └── index.py                     # Vercel serverless entry
+│
+├── requirements.txt                 # Python dependencies
+├── vercel.json                      # Vercel configuration
+├── .env                             # Environment variables (local)
+├── .gitignore                       # Git ignore rules
+└── README.md                        # This file
+```
 
-- **API Documentation**: Visit `/docs` when server is running{
+---
 
-### 2️⃣ Create Virtual Environment
+## ⭐ Setup & Installation
 
-```bash- **Firebase Collections**: See `FIREBASE_COLLECTIONS_DOCUMENTATION.md`  "user_id": "user123",
+### Prerequisites
+- Python 3.9 or higher
+- Google Cloud API key (Gemini access)
+- Firebase project with Firestore enabled
+- Firebase Admin SDK credentials
 
+### 1. Clone Repository
+```bash
+git clone https://github.com/avnisinghal001/serenique_cloud_server.git
+cd serenique_cloud_server
+```
+
+### 2. Create Virtual Environment
+```bash
 python -m venv venv
 
-source venv/bin/activate  # On Windows: venv\Scripts\activate  "action": {
+# Activate virtual environment
+# On Linux/Mac:
+source venv/bin/activate
 
+# On Windows:
+venv\Scripts\activate
 ```
 
-## 🧪 Testing    "type": "breathing_exercise",
-
-### 3️⃣ Install Dependencies
-
-```bash    "content": {
-
+### 3. Install Dependencies
+```bash
 pip install -r requirements.txt
-
-``````bash      "afterMood": "Calm",
-
-
-
-### 4️⃣ Set Up Environment Variables# Health check      "beforeMood": "Anxious",
-
-```bash
-
-cp .env.example .envcurl http://localhost:5001/api/health      "technique": "Diaphragmatic Breathing",
-
-# Edit .env with your actual credentials
-
-```      "moodImprovement": "Improved"
-
-
-
-### 5️⃣ Run the Server# Generate persona (requires user_id and quiz_data)    }
-
-```bash
-
-uvicorn main:app --reload --host 0.0.0.0 --port 8000curl -X POST http://localhost:5001/api/persona/generate \  }
-
 ```
 
-  -H "Content-Type: application/json" \}
+### 4. Configure Environment Variables
 
-### 6️⃣ Access API Documentation
+Create `.env` file in root directory:
+```env
+# Google Gemini API Key
+GOOGLE_API_KEY=your_gemini_api_key_here
 
-Open your browser and navigate to:  -d '{"user_id": "test123", "quiz_data": {"1": "a", "2": "b", ...}}'```
+# Model Configuration
+MODEL_NAME=gemini-2.5-flash
+MODEL_TEMPERATURE=0.7
 
-- 📄 Swagger UI: `http://localhost:8000/docs`
+# Firebase Configuration (Option 1: JSON string)
+FIREBASE_CREDENTIALS='{"type":"service_account","project_id":"..."}'
 
-- 📘 ReDoc: `http://localhost:8000/redoc````
-
-
-
----**Supported Action Types:**
-
-
-
-## 🐳 Docker Deployment## 🐛 Troubleshooting- `chat_message` - General chat
-
-
-
-```bash- `breathing_exercise` - From breathing_service
-
-# Build Docker image
-
-docker build -t serenique-server .### "Module not found" error- `grounding_technique` - From grounding_service
-
-
-
-# Run container- Run `pip install -r requirements.txt`- `mindfulness_meditation` - From mindfulness_service
-
-docker run -d -p 8000:8000 --env-file .env --name serenique-container serenique-server
-
-```- `body_relaxation` - From body_relaxation_service
-
-
-
-Server will be available at: `http://localhost:8000`### "Firebase initialization failed"- `tool_use` - Generic tool usage
-
-
-
----- Check if `serenique-avni-firebase-adminsdk-*.json` exists- `sleep_log` - Sleep tracking
-
-
-
-## ☁️ Vercel Deployment- Or set `FIREBASE_CREDENTIALS` environment variable
-
-
-
-This project is configured for **Vercel Serverless Deployment**.### 4. Get Persona
-
-
-
-### Deploy Steps:### "GOOGLE_API_KEY not set"Retrieve existing persona for a user.
-
-1. Push code to GitHub
-
-2. Import project in Vercel Dashboard- Add to `.env` file locally
-
-3. Add environment variables in Vercel settings
-
-4. Deploy! 🚀- Or set in Vercel environment variables```http
-
-
-
-**Live API:** `https://sereniquecloudserver.vercel.app`GET /api/persona/{user_id}
-
-
-
----### "Timeout error"```
-
-
-
-## 🧠 System Architecture- Firebase queries taking too long
-
-
-
-```- Check Firebase console for issues### 5. Health Check
-
-┌─────────────────────┐
-
-│  Flutter Mobile App │- Consider upgrading Vercel plan for longer timeoutCheck server status and configuration.
-
-│    (Frontend UI)    │
-
-└──────────┬──────────┘
-
-           │
-
-           ↓## 📊 Monitoring```http
-
-┌─────────────────────┐
-
-│   FastAPI Server    │GET /api/health
-
-│  (Vercel Serverless)│
-
-└──────────┬──────────┘After deployment:```
-
-           │
-
-    ┌──────┴───────┐- **Vercel Analytics**: https://vercel.com/dashboard/analytics
-
-    │              │
-
-    ↓              ↓- **Firebase Console**: https://console.firebase.google.com## 🧠 How It Works
-
-┌─────────┐  ┌──────────────┐
-
-│Firebase │  │ Google Gemini│- **Gemini API Usage**: https://aistudio.google.com/app/apikey
-
-│Firestore│  │  2.5 Flash   │
-
-└─────────┘  └──────────────┘1. **Quiz Analysis**: User completes mental wellness quiz in Flutter app
-
-    │              │
-
-    └──────┬───────┘## 🔐 Security Notes2. **Gemini Processing**: Quiz responses sent to Gemini 2.0 Flash via LangChain
-
-           │
-
-           ↓3. **Persona Generation**: AI generates personalized psychological profile
-
-    ┌──────────────┐
-
-    │  LangChain   │- Repository should be **PRIVATE** (Firebase credentials are included)4. **Firebase Storage**: Persona saved to Firestore
-
-    │ Orchestration│
-
-    └──────────────┘- CORS is currently set to allow all origins - restrict in production5. **Chatbot Configuration**: Profile used to personalize AI chatbot responses
-
-           │
-
-           ↓- Add rate limiting before public launch
-
-    ┌──────────────────────┐
-
-    │ Tool Recommendation  │- Consider adding authentication to endpoints## 📦 Project Structure
-
-    │  Engine (95%+ conf)  │
-
-    └──────────────────────┘
-
+# Firebase Configuration (Option 2: File path)
+GOOGLE_APPLICATION_CREDENTIALS=/path/to/firebase-adminsdk.json
 ```
 
-## 📝 Version```
+### 5. Firebase Setup
 
----
+#### Option A: Environment Variable
+1. Go to Firebase Console → Project Settings → Service Accounts
+2. Generate new private key (downloads JSON file)
+3. Copy entire JSON content
+4. Set `FIREBASE_CREDENTIALS` in `.env` with the JSON string
 
-serenique_cloud_server/
+#### Option B: Local File
+1. Download Firebase Admin SDK JSON file
+2. Place in project root
+3. Set `GOOGLE_APPLICATION_CREDENTIALS` path in `.env`
 
-## 🎯 Key Algorithms
+### 6. Run Development Server
+```bash
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
+```
 
-- **Version**: 4.0.0├── main.py                          # FastAPI application
+Server runs at: `http://localhost:8000`
 
-### 1. **Persona Generation**
+Interactive API docs: `http://localhost:8000/docs`
 
-Uses LangChain + Gemini to analyze quiz responses and generate:- **Last Updated**: November 6, 2025├── langchain_persona_architect.py   # Gemini + LangChain integration
+### 7. Test API
 
-- **Personality Profile** (static traits)
+```bash
+# Health check
+curl http://localhost:8000/api/health
 
-- **Live User State** (dynamic emotional state)- **AI Model**: Gemini 2.0 Flash├── firebase_service.py              # Firestore operations
-
-- **Therapeutic Approach** recommendations
-
-- **Custom System Prompt** for personalized interactions- **Framework**: FastAPI + LangChain├── credentials.json                 # Google service account credentials
-
-
-
-### 2. **Tool Recommendation Engine**- **Database**: Firebase Firestore├── requirements.txt                 # Python dependencies
-
-- **Primary Method:** LLM-based intelligent scoring (0-100 scale)
-
-- **Fallback Method:** Enhanced keyword matching with context boosting└── vercel.json                      # Vercel deployment config
-
-- **Threshold:** 95%+ confidence for display
-
-- **13 Wellness Tools** across 4 categories## 📧 Support```
-
-
-
-### 3. **Context-Aware Chat**
-
-- Loads last 10 messages for context
-
-- Analyzes sentiment and emotional stateFor issues or questions, refer to:## 🔑 Credentials
-
-- Adapts tone based on user's current mood
-
-- Remembers key insights from past conversations- `VERCEL_DEPLOYMENT_CHECKLIST.md` - Deployment troubleshooting
-
-
-
-### 4. **Crisis Detection**- FastAPI Docs: https://fastapi.tiangolo.comThe server uses `credentials.json` for Firebase Admin SDK authentication. Ensure this file is properly configured with your Firebase service account credentials.
-
-Identifies keywords related to:
-
-- Self-harm- Vercel Docs: https://vercel.com/docs
-
-- Suicidal ideation
-
-- Severe distress## 🚀 Deploying to Vercel
-
-
-
-Responds with immediate compassion and crisis resources.---
-
-
-
----```bash
-
-
-
-## 🧘 Wellness Tools (13 Total)**Ready for Deployment** ✅npm install -g vercel
-
-
-
-### 🌬️ Breathing Exercisesvercel --prod
-
-1. **Diaphragmatic Breathing** — Deep belly relaxation
-
-2. **Box Breathing** — Mental clarity & focusAll files are in the root directory. Just run `vercel --prod` and you're live!```
-
-3. **4-7-8 Breathing** — Sleep & deep relaxation
-
-4. **Pursed-Lip Breathing** — Quick anxiety relief
-
-Set environment variables in Vercel dashboard:
-
-### 🧘 Body Relaxation- `GOOGLE_API_KEY`: Your Gemini API key
-
-5. **Body Mapping** — Visual tension identification
-
-6. **Wave Breathing** — Rhythmic calm with visual guide## 🧪 Testing
-
-7. **Self-Hug** — Self-compassion technique
-
-Test the API using the interactive Swagger UI:
-
-### 🌍 Grounding Techniques```
-
-8. **5-4-3-2-1 Method** — Sensory groundinghttp://localhost:5001/docs
-
-9. **Texture Focus** — Tactile grounding```
-
-10. **Mental Grounding** — Cognitive prompts
-
-Or use curl:
-
-### 🧘‍♀️ Mindfulness Meditation```bash
-
-11. **Body Scan Meditation** — Progressive relaxationcurl -X POST "http://localhost:5001/api/persona/generate" \
-
-12. **Mindful Walking** — Moving meditation  -H "Content-Type: application/json" \
-
-13. **Mindful Eating** — Sensory awareness  -d '{"user_id": "test123", "quiz_data": {"1": "a", "2": "b"}}'
-
+# Generate persona
+curl -X POST http://localhost:8000/api/persona/generate \
+  -H "Content-Type: application/json" \
+  -d '{
+    "user_id": "test_user_123",
+    "quiz_data": {
+      "1": "b", "2": "b", "3": "a", "4": "b", "5": "d",
+      "6": "a", "7": "a", "8": "b", "9": "a", "10": "b"
+    }
+  }'
 ```
 
 ---
 
-## 📊 Monitoring
+## ⭐ API Endpoints
 
-## 📊 Database Schema (Firebase Firestore)
+### Persona Management
 
-Check system health:
+#### `POST /api/persona/generate`
+Generate personalized chatbot persona from quiz responses.
 
-### Collection: `user_personas````bash
-
-```jsoncurl http://localhost:5001/api/health
-
-{```
-
-  "user_id": "string",
-
-  "personality_profile": {Response includes:
-
-    "communication_style": "string",- Service status
-
-    "primary_stressor": "string",- Gemini configuration status
-
-    "coping_mechanism": "string"- Firebase initialization status
-
-  },
-
-  "live_user_state": {## 🔄 Migration from OpenRouter
-
-    "current_mood": "string",
-
-    "stress_level": "number",This version has been migrated from OpenRouter to Google Gemini:
-
-    "engagement_level": "string"- **Old**: `langchain-openai` + OpenRouter
-
-  },- **New**: `langchain-google-genai` + Gemini 2.0 Flash
-
-  "created_at": "timestamp",- **Benefits**: Faster responses, better integration, cost-effective
-
-  "updated_at": "timestamp"
-
-}## 📝 License
-
-```
-
-Part of the Serenique Mental Wellness platform.
-
-### Collection: `chat_history/{user_id}/messages`
+**Request:**
 ```json
 {
-  "role": "user|assistant",
-  "content": "string",
-  "created_at": "timestamp",
-  "recommended_tools": {
-    "tool_name": "score (0-100)"
+  "user_id": "firebase_auth_uid",
+  "quiz_data": {
+    "1": "b",
+    "2": "a",
+    "3": "c",
+    ...
   }
 }
 ```
 
-### Collection: `users/{user_id}/saved_chats`
+**Response:**
 ```json
 {
-  "date": "YYYY-MM-DD",
-  "saved_at": "timestamp",
-  "message_count": "number"
+  "success": true,
+  "user_persona": {
+    "user_id": "firebase_auth_uid",
+    "personality_profile": {
+      "communication_style": "logical",
+      "primary_stressor": "academics",
+      "social_profile": "introverted",
+      "coping_mechanism": "analytical",
+      "stress_level": "moderate",
+      "strengths": ["Self-aware", "Analytical thinking"],
+      "vulnerabilities": ["Perfectionism", "Overthinking"],
+      "recommended_approach": "CBT-based cognitive restructuring",
+      "chatbot_system_prompt": "..."
+    },
+    "live_user_state": {
+      "current_mood": "neutral",
+      "last_interaction": "onboarding",
+      ...
+    }
+  },
+  "message": "Persona generated successfully"
 }
+```
+
+#### `GET /api/persona/{user_id}`
+Retrieve existing persona for a user.
+
+**Response:**
+```json
+{
+  "success": true,
+  "user_persona": { ... },
+  "message": "Persona retrieved successfully"
+}
+```
+
+#### `POST /api/persona/update-state`
+Update live user state based on app interactions.
+
+**Request:**
+```json
+{
+  "user_id": "firebase_auth_uid",
+  "action": {
+    "type": "breathing_exercise",
+    "content": {
+      "technique": "Box Breathing",
+      "afterMood": "calm",
+      "moodImprovement": "Improved"
+    }
+  }
+}
+```
+
+### Chat
+
+#### `POST /api/chat`
+Send chat message and receive AI response.
+
+**Request:**
+```json
+{
+  "user_id": "firebase_auth_uid",
+  "message": "I'm feeling really anxious about my exam tomorrow",
+  "include_history": true
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "response": "I hear that exam anxiety... it's completely understandable...",
+  "message": "Chat response generated successfully",
+  "chat_history_saved": true,
+  "recommended_tools": {
+    "diaphragmatic_breathing": 15.0,
+    "box_breathing": 85.0,
+    "four_seven_eight_breathing": 75.0,
+    "five_four_three_two_one": 70.0,
+    ...
+  }
+}
+```
+
+#### `GET /api/chat/history/{user_id}?limit=50`
+Get chat history for a user.
+
+**Response:**
+```json
+{
+  "success": true,
+  "user_id": "firebase_auth_uid",
+  "message_count": 25,
+  "messages": [
+    {
+      "role": "user",
+      "content": "I'm stressed about exams",
+      "timestamp": "2025-11-12T10:30:00Z",
+      "metadata": { "mood": "anxious" }
+    },
+    {
+      "role": "assistant",
+      "content": "I hear you...",
+      "timestamp": "2025-11-12T10:30:05Z",
+      "recommended_tools": { ... }
+    }
+  ],
+  "message": "Successfully retrieved 25 messages"
+}
+```
+
+### Insights
+
+#### `GET /api/insights/{user_id}?limit=10`
+Get key insights (long-term memory) for a user.
+
+**Response:**
+```json
+{
+  "success": true,
+  "user_id": "firebase_auth_uid",
+  "insights": [
+    {
+      "id": "insight_123",
+      "type": "stressor",
+      "content": "Academic stress detected: exam tomorrow",
+      "original_message": "I have an exam tomorrow and...",
+      "timestamp": "2025-11-12T10:30:00Z"
+    },
+    {
+      "type": "breakthrough",
+      "content": "Positive realization: I understand my anxiety triggers",
+      ...
+    }
+  ],
+  "stats": {
+    "total_insights": 15,
+    "by_type": {
+      "stressor": 5,
+      "breakthrough": 3,
+      "milestone": 2
+    }
+  },
+  "count": 10
+}
+```
+
+### Utility
+
+#### `GET /api/health`
+Health check endpoint.
+
+**Response:**
+```json
+{
+  "status": "healthy",
+  "service": "Serenique Gemini Persona Service",
+  "version": "4.0.0",
+  "gemini_configured": true,
+  "firebase_initialized": true
+}
+```
+
+#### `GET /api/stats`
+Get persona generation statistics.
+
+#### `GET /api/cache/stats`
+Get cache performance metrics.
+
+---
+
+## ⭐ Core Components
+
+### 1. LangChainPersonaArchitect
+
+**Purpose**: Manages all AI-related operations using LangChain and Gemini.
+
+**Key Methods**:
+- `generate_persona()`: Analyzes quiz data and generates personality profile
+- `chat()`: Generates context-aware AI responses
+- `update_user_state()`: Updates dynamic user state based on interactions
+- `_extract_tool_recommendations()`: Intelligently scores wellness tools
+
+**Responsibilities**:
+- Prompt engineering and template management
+- LLM chain construction and invocation
+- Structured output parsing with Pydantic
+- Context building from multiple sources
+- Sentiment analysis and adaptive communication
+
+### 2. FirebaseService
+
+**Purpose**: Handles all database operations with Firebase Firestore.
+
+**Key Methods**:
+- `save_user_persona()`: Store complete persona
+- `get_user_persona()`: Load persona with caching
+- `save_chat_message()`: Store chat with metadata
+- `get_chat_history_optimized()`: Load history
+- `save_key_insight()`: Store important moments
+- `get_relevant_insights()`: Load long-term memories
+
+**Responsibilities**:
+- Singleton pattern for single Firebase connection
+- In-memory caching for performance
+- Error handling and retry logic
+- Data serialization/deserialization
+- Collection management
+
+### 3. InsightExtractor
+
+**Purpose**: Extracts significant insights from conversations for long-term memory.
+
+**Key Methods**:
+- `extract_insights()`: Analyze conversation and extract key moments
+- `_detect_crisis()`: Identify self-harm or crisis situations
+- `_detect_stressors()`: Find new stress sources
+- `_detect_breakthrough()`: Recognize positive realizations
+- `should_save_insight()`: Filter significant insights
+
+**Responsibilities**:
+- Pattern matching for different insight types
+- Context extraction around keywords
+- Priority assignment (crisis = urgent)
+- Filtering noise from significant moments
+
+---
+
+## ⭐ Workflow & Data Flow
+
+### User Onboarding Flow
+
+```mermaid
+sequenceDiagram
+    participant U as User (Flutter)
+    participant API as FastAPI
+    participant PA as Persona Architect
+    participant G as Gemini AI
+    participant FS as Firebase
+    
+    U->>API: Complete 10-question quiz
+    API->>PA: generate_persona(user_id, quiz_data)
+    PA->>PA: Format quiz for LLM analysis
+    PA->>G: Analyze with LangChain
+    G-->>PA: Structured PersonalityProfile JSON
+    PA->>PA: Create UserPersona with LiveUserState
+    PA->>FS: save_user_persona()
+    FS-->>PA: Success
+    PA-->>API: Complete UserPersona
+    API-->>U: Persona generated successfully
+```
+
+### Chat Conversation Flow
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant API as FastAPI
+    participant FS as Firebase
+    participant PA as Persona Architect
+    participant IE as Insight Extractor
+    participant G as Gemini
+    
+    U->>API: Send chat message
+    API->>FS: Load user persona
+    FS-->>API: PersonalityProfile + LiveUserState
+    API->>FS: Get chat history
+    FS-->>API: Last 10 messages
+    API->>FS: Get key insights
+    FS-->>API: 5 important moments
+    
+    API->>PA: chat(message, persona, history, insights)
+    PA->>PA: Build comprehensive system prompt
+    PA->>PA: Analyze current sentiment
+    PA->>G: Generate response with full context
+    G-->>PA: AI response text
+    PA->>PA: Extract tool recommendations
+    PA-->>API: (response, recommended_tools)
+    
+    API->>IE: extract_insights(user_msg, ai_response)
+    IE-->>API: List of key insights
+    
+    API->>FS: Save user message
+    API->>FS: Save AI response + tools
+    API->>FS: Save significant insights
+    API->>FS: Update live user state
+    
+    API-->>U: Response + recommended tools
+```
+
+### State Update Flow
+
+```mermaid
+graph LR
+    A[User Action] --> B{Action Type?}
+    B -->|breathing_exercise| C[Update Tool Count]
+    B -->|chat_message| D[Update Chat Count]
+    B -->|sleep_log| E[Update Sleep Count]
+    
+    C --> F[Check Mood Change]
+    D --> F
+    E --> F
+    
+    F --> G{Improvement?}
+    G -->|Yes| H[Add to Coping Successes]
+    G -->|No| I[Check Support Needs]
+    
+    H --> J[Update Firebase]
+    I --> K{Struggling?}
+    K -->|Yes| L[Set needs_check_in=true]
+    K -->|No| J
+    L --> J
 ```
 
 ---
 
-## 🚀 Future Roadmap
+## ⭐ Frontend Integration (Upcoming/TBA)
 
-- [ ] **Voice Integration** — Speech-to-text for easier interaction
-- [ ] **Multilingual Support** — Hindi, Spanish, French translations
-- [ ] **Mood Tracking Visualization** — Charts and graphs for emotional trends
-- [ ] **Group Therapy Sessions** — Anonymous peer support groups
-- [ ] **Integration with Wearables** — Heart rate, sleep data from smartwatches
-- [ ] **Advanced Analytics Dashboard** — For mental health professionals
-- [ ] **Push Notifications** — Gentle check-ins and reminders
-- [ ] **Offline Mode** — Core features without internet
-- [ ] **Journaling Feature** — Reflective writing prompts
-- [ ] **Emergency Contact System** — Quick access to trusted friends/family
+### Flutter App Structure
+
+The Flutter mobile app integrates with this backend through:
+
+1. **Firebase Authentication**
+   - User registration and login
+   - JWT token management
+   - User ID for API requests
+
+2. **Quiz Screen**
+   - 10-question personality assessment
+   - Sends responses to `/api/persona/generate`
+   - Stores persona locally
+
+3. **Chat Interface**
+   - Real-time message UI
+   - Sends messages to `/api/chat`
+   - Displays AI responses
+   - Shows recommended tools as cards
+
+4. **Wellness Tools**
+   - Breathing exercises (4 types)
+   - Body relaxation (3 tools)
+   - Grounding techniques (3 methods)
+   - Mindfulness meditation (3 practices)
+   - Sends usage data to `/api/persona/update-state`
+
+---
+
+## ⭐ Deployment
+
+### Vercel Deployment
+
+This project is optimized for serverless deployment on Vercel.
+
+#### 1. Vercel Configuration
+
+`vercel.json`:
+```json
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "api/index.py",
+      "use": "@vercel/python"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "api/index.py"
+    }
+  ],
+  "env": {
+    "GOOGLE_API_KEY": "@google_api_key",
+    "FIREBASE_CREDENTIALS": "@firebase_credentials",
+    "MODEL_NAME": "gemini-2.5-flash",
+    "MODEL_TEMPERATURE": "0.7"
+  }
+}
+```
+
+#### 2. Deploy to Vercel
+
+```bash
+# Install Vercel CLI
+npm install -g vercel
+
+# Login to Vercel
+vercel login
+
+# Deploy
+vercel --prod
+```
+
+#### 3. Set Environment Variables
+
+```bash
+vercel env add GOOGLE_API_KEY
+vercel env add FIREBASE_CREDENTIALS
+vercel env add MODEL_NAME
+vercel env add MODEL_TEMPERATURE
+```
+
+Or via Vercel Dashboard:
+1. Go to Project Settings → Environment Variables
+
+#### 4. Verify Deployment
+
+```bash
+curl https://your-project.vercel.app/api/health
+```
 
 ---
 
@@ -902,49 +1354,37 @@ Contributions are welcome! Please follow these steps:
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
+3. Commit changes (`git commit -m 'Add AmazingFeature'`)
+4. Push to branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
 ---
 
 ## 📄 License
 
-This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
+This project is proprietary software created by **Avni Singhal**.
 
 ---
 
-## 🙏 Acknowledgments
+## ⭐ Author
 
-- **LangChain** — For the powerful AI orchestration framework
-- **Google Gemini** — For the intelligent language model
-- **Firebase** — For the scalable backend infrastructure
-- **FastAPI** — For the lightning-fast API framework
-- **Vercel** — For seamless serverless deployment
-- **Flutter** — For the beautiful cross-platform mobile app
-- **Open Source Community** — For inspiration and support
+**Avni Singhal**
+
+- LinkedIn: [linkedin.com/in/avnisinghal001](https://www.linkedin.com/in/avnisinghal001)
+- GitHub: [github.com/avnisinghal001](https://github.com/avnisinghal001)
+- Email: [singhalavni26@gmail.com](mailto:singhalavni26@gmail.com)
 
 ---
 
-## ✨ Built with ❤️ by [Avni Singhal](https://github.com/avnisinghal001)
+## ⭐ Acknowledgments
 
-> *"Creating safe harbors in the digital world. One calm conversation at a time."* 🌿
-
----
-
-## 🌟 Star this repo if you believe in accessible mental health support!
-
-[![GitHub stars](https://img.shields.io/github/stars/avnisinghal001/serenique_cloud_server?style=social)](https://github.com/avnisinghal001/serenique_cloud_server)
-[![GitHub forks](https://img.shields.io/github/forks/avnisinghal001/serenique_cloud_server?style=social)](https://github.com/avnisinghal001/serenique_cloud_server/fork)
-[![GitHub issues](https://img.shields.io/github/issues/avnisinghal001/serenique_cloud_server)](https://github.com/avnisinghal001/serenique_cloud_server/issues)
+- **Google Gemini** for providing powerful LLM capabilities
+- **LangChain** for excellent prompt engineering framework
+- **Firebase** for scalable backend infrastructure
+- **FastAPI** for elegant Python web framework
+- **Vercel** for generous deployment infrastructure
+- Mental health research community for evidence-based practices
 
 ---
 
-### 📬 Connect with Me
-
-- **LinkedIn:** [Avni Singhal](https://www.linkedin.com/in/avnisinghal001)
-- **GitHub:** [@avnisinghal001](https://github.com/avnisinghal001)
-
----
-
-*Made with peace, purpose, and Python* 🐍🌿
+**Built with ❤️ by Avni Singhal and Amon Sharma**
