@@ -386,6 +386,11 @@ async def chat(request: ChatRequest):
         print(f"🔧 Recommended tools: {recommended_tools}")
         print(f"🔧 Type of recommended_tools: {type(recommended_tools)}")
         
+        # Use IST (Indian Standard Time, UTC+5:30)
+        from datetime import timezone, timedelta
+        ist = timezone(timedelta(hours=5, minutes=30))
+        now_ist = datetime.now(ist)
+        
         # Save user message to Firebase
         firebase_service.save_chat_message(
             user_id=request.user_id,
@@ -393,7 +398,7 @@ async def chat(request: ChatRequest):
             content=request.message,
             metadata={
                 "mood": persona.live_user_state.current_mood.value,
-                "timestamp": datetime.utcnow().isoformat()
+                "timestamp": now_ist.isoformat()
             }
         )
         
@@ -404,7 +409,7 @@ async def chat(request: ChatRequest):
             content=ai_response,
             metadata={
                 "model": MODEL_NAME,
-                "timestamp": datetime.utcnow().isoformat()
+                "timestamp": now_ist.isoformat()
             },
             recommended_tools=recommended_tools  # Add recommended tools to the saved message
         )

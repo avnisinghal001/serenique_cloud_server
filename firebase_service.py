@@ -316,11 +316,16 @@ class FirebaseService:
             bool: True if successful, False otherwise
         """
         try:
+            # Use IST (Indian Standard Time, UTC+5:30)
+            from datetime import timezone, timedelta
+            ist = timezone(timedelta(hours=5, minutes=30))
+            now_ist = datetime.now(ist)
+            
             message_data = {
                 "role": role,
                 "content": content,
                 "timestamp": firestore.SERVER_TIMESTAMP,
-                "created_at": datetime.utcnow().isoformat()
+                "created_at": now_ist.isoformat()  # IST timestamp
             }
             
             if metadata:
@@ -414,39 +419,42 @@ class FirebaseService:
         """
         Retrieve chat history for a user filtered by a specific date.
         
+        ⚡ OPTIMIZED: Filters by date in Python to avoid Firebase composite index requirement
+        Uses IST (Indian Standard Time, UTC+5:30) for date filtering
+        
         Args:
             user_id: User ID from Firebase Authentication
-            date: Date string in format YYYY-MM-DD (e.g., "2025-11-07")
+            date: Date string in format YYYY-MM-DD (e.g., "2025-11-07") - IST date
             limit: Maximum number of messages to retrieve (default 50)
         
         Returns:
             List of message dictionaries from that date ordered by timestamp (newest first)
         """
         try:
-            from datetime import datetime, timedelta
+            from datetime import datetime, timedelta, timezone
             
-            # Parse the date string
+            # Parse the date string and treat it as IST
+            ist = timezone(timedelta(hours=5, minutes=30))
             date_obj = datetime.strptime(date, "%Y-%m-%d")
             
-            # Create start and end of day timestamps
-            start_of_day = date_obj.replace(hour=0, minute=0, second=0, microsecond=0)
+            # Create start and end of day timestamps in IST
+            start_of_day = date_obj.replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=ist)
             end_of_day = start_of_day + timedelta(days=1)
             
-            # Convert to ISO format strings for Firestore query
+            # Convert to ISO format strings for comparison
             start_iso = start_of_day.isoformat()
             end_iso = end_of_day.isoformat()
             
-            print(f"🔍 Querying messages from {start_iso} to {end_iso}")
+            print(f"🔍 Filtering messages from {start_iso} to {end_iso}")
             
-            # Query messages within the date range
+            # ⚡ Query ALL messages (no date filter to avoid composite index)
+            # Then filter by date in Python code
             messages_ref = (
                 self.db.collection("chat_history")
                 .document(user_id)
                 .collection("messages")
-                .where("created_at", ">=", start_iso)
-                .where("created_at", "<", end_iso)
                 .order_by("created_at", direction=firestore.Query.DESCENDING)
-                .limit(limit)
+                .limit(limit * 3)  # Get extra messages to filter from
             )
             
             messages = messages_ref.stream()
@@ -454,18 +462,26 @@ class FirebaseService:
             chat_history = []
             for msg in messages:
                 msg_data = msg.to_dict()
-                message_dict = {
-                    "role": msg_data.get("role"),
-                    "content": msg_data.get("content"),
-                    "timestamp": msg_data.get("created_at"),
-                    "metadata": msg_data.get("metadata", {})
-                }
+                created_at = msg_data.get("created_at", "")
                 
-                # Include recommended_tools if present (only for assistant messages)
-                if msg_data.get("recommended_tools"):
-                    message_dict["recommended_tools"] = msg_data.get("recommended_tools")
-                
-                chat_history.append(message_dict)
+                # ⚡ Filter by date in Python (avoids composite index requirement)
+                if created_at >= start_iso and created_at < end_iso:
+                    message_dict = {
+                        "role": msg_data.get("role"),
+                        "content": msg_data.get("content"),
+                        "timestamp": created_at,
+                        "metadata": msg_data.get("metadata", {})
+                    }
+                    
+                    # Include recommended_tools if present (only for assistant messages)
+                    if msg_data.get("recommended_tools"):
+                        message_dict["recommended_tools"] = msg_data.get("recommended_tools")
+                    
+                    chat_history.append(message_dict)
+                    
+                    # Stop once we have enough messages from this date
+                    if len(chat_history) >= limit:
+                        break
             
             print(f"✅ Retrieved {len(chat_history)} messages for user {user_id} on {date} (newest first)")
             return chat_history
