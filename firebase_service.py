@@ -36,10 +36,6 @@ class FirebaseService:
             self._initialize_firebase()
             self.db = firestore.client()
             
-            # Initialize in-memory cache for chat history
-            self._chat_cache: Dict[str, Dict] = {}
-            self._cache_ttl = 300  # 5 minutes TTL (in seconds)
-            
             FirebaseService._initialized = True
     
     def _initialize_firebase(self):
@@ -351,9 +347,6 @@ class FirebaseService:
                 "total_messages": firestore.Increment(1)
             }, merge=True)
             
-            # ⚡ Invalidate cache (force fresh data on next request)
-            self.invalidate_chat_cache(user_id)
-            
             print(f"✅ Saved {role} message for user {user_id}")
             return True
             
@@ -493,51 +486,25 @@ class FirebaseService:
     def get_chat_history_optimized(
         self,
         user_id: str,
-        limit: int = 10,
-        use_cache: bool = True
+        limit: int = 10
     ) -> List[Dict[str, Any]]:
         """
-        ⚡ OPTIMIZED: Retrieve chat history with in-memory caching.
-        
-        Performance Strategy:
-        - Tier 1: Check in-memory cache (0ms - instant!)
-        - Tier 2: Fetch from Firebase (~100ms)
-        - Cache expires after 5 minutes
-        - Auto-invalidated when new messages saved
+        Retrieve recent chat history for a user.
         
         Args:
             user_id: User ID from Firebase Authentication
-            limit: Number of recent messages (default 10, optimized for AI)
-            use_cache: Whether to use cache (default True)
+            limit: Number of recent messages (default 10)
         
         Returns:
             List of recent messages with role, content, timestamp
         """
-        cache_key = f"{user_id}_chat_{limit}"
-        
-        # Tier 1: Check in-memory cache
-        if use_cache and cache_key in self._chat_cache:
-            cached_data = self._chat_cache[cache_key]
-            cache_time = datetime.fromisoformat(cached_data["timestamp"])
-            
-            # Check if cache is still valid (within TTL)
-            age_seconds = (datetime.utcnow() - cache_time).total_seconds()
-            if age_seconds < self._cache_ttl:
-                print(f"✅ Cache HIT for {user_id} (age: {int(age_seconds)}s, saved ~100ms)")
-                return cached_data["messages"]
-            else:
-                print(f"⏰ Cache EXPIRED for {user_id} (age: {int(age_seconds)}s)")
-        
-        print(f"❌ Cache MISS for {user_id} - Fetching from Firebase...")
-        
-        # Tier 2: Fetch from Firebase (cache miss or expired)
         try:
             messages_ref = (
                 self.db.collection("chat_history")
                 .document(user_id)
                 .collection("messages")
                 .order_by("created_at", direction=firestore.Query.DESCENDING)
-                .limit(limit)  # Only fetch what we need!
+                .limit(limit)
             )
             
             docs = messages_ref.stream()
@@ -561,49 +528,12 @@ class FirebaseService:
             # Reverse to chronological order (oldest first)
             messages.reverse()
             
-            # Store in cache
-            self._chat_cache[cache_key] = {
-                "messages": messages,
-                "timestamp": datetime.utcnow().isoformat()
-            }
-            
-            print(f"💾 Cached {len(messages)} messages for {user_id}")
+            print(f"📚 Loaded {len(messages)} messages for {user_id}")
             return messages
             
         except Exception as e:
             print(f"❌ Error fetching chat history: {e}")
             return []
-    
-    def invalidate_chat_cache(self, user_id: str):
-        """
-        Invalidate all cached chat history for a user.
-        Called automatically when new messages are saved.
-        
-        Args:
-            user_id: User ID to invalidate cache for
-        """
-        keys_to_remove = [k for k in self._chat_cache.keys() if k.startswith(user_id)]
-        removed_count = len(keys_to_remove)
-        
-        for key in keys_to_remove:
-            del self._chat_cache[key]
-        
-        if removed_count > 0:
-            print(f"🗑️ Invalidated {removed_count} cache entries for {user_id}")
-    
-    def get_cache_stats(self) -> Dict[str, Any]:
-        """
-        Get cache statistics for monitoring performance.
-        
-        Returns:
-            Dictionary with cache statistics
-        """
-        return {
-            "total_cached_users": len(set(k.split('_')[0] for k in self._chat_cache.keys())),
-            "total_cache_entries": len(self._chat_cache),
-            "cache_ttl_seconds": self._cache_ttl,
-            "cached_user_ids": list(set(k.split('_')[0] for k in self._chat_cache.keys()))
-        }
     
     def clear_chat_history(self, user_id: str) -> bool:
         """

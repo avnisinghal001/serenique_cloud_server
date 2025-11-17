@@ -1,5 +1,6 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, BackgroundTasks
 import asyncio
+import time
 from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -38,7 +39,7 @@ app.add_middleware(
 # Get Google API key from environment (Gemini API key)
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY", "")
 MODEL_NAME = os.getenv("MODEL_NAME", "gemini-2.5-flash")
-MODEL_TEMPERATURE = float(os.getenv("MODEL_TEMPERATURE", "0.7"))
+MODEL_TEMPERATURE = float(os.getenv("MODEL_TEMPERATURE", "0.5"))
 
 if not GOOGLE_API_KEY:
     print("⚠️  WARNING: GOOGLE_API_KEY not set. Persona generation will fail.")
@@ -101,24 +102,24 @@ class ChatResponse(BaseModel):
     response: Optional[str] = None
     message: str
     chat_history_saved: bool = False
-    recommended_tools: Optional[Dict[str, float]] = {
-        # Breathing Exercises (0.0 to 100.0 probability score)
-        "diaphragmatic_breathing": 0.0,
-        "box_breathing": 0.0,
-        "four_seven_eight_breathing": 0.0,
-        "pursed_lip_breathing": 0.0,
+    recommended_tools: Optional[Dict[str, int]] = {
+        # Breathing Exercises (0 to 100 score)
+        "diaphragmatic_breathing": 0,
+        "box_breathing": 0,
+        "four_seven_eight_breathing": 0,
+        "pursed_lip_breathing": 0,
         # Body Relaxation
-        "body_mapping": 0.0,
-        "wave_breathing": 0.0,
-        "self_hug": 0.0,
+        "body_mapping": 0,
+        "wave_breathing": 0,
+        "self_hug": 0,
         # Grounding Techniques
-        "five_four_three_two_one": 0.0,
-        "texture_focus": 0.0,
-        "mental_grounding": 0.0,
+        "five_four_three_two_one": 0,
+        "texture_focus": 0,
+        "mental_grounding": 0,
         # Mindfulness Meditation
-        "body_scan_meditation": 0.0,
-        "mindful_walking": 0.0,
-        "mindful_eating": 0.0
+        "body_scan_meditation": 0,
+        "mindful_walking": 0,
+        "mindful_eating": 0
     }
 
 
@@ -305,29 +306,114 @@ async def update_user_state(request: UpdateStateRequest):
 
 
 # ============================================================================
+# BACKGROUND TASK FUNCTIONS
+# ============================================================================
+
+def save_chat_and_update_state(
+    user_id: str,
+    user_message: str,
+    ai_response: str,
+    recommended_tools: Dict[str, int],
+    persona: UserPersona,
+    model_name: str
+):
+    """
+    Background task to save chat messages and update user state.
+    This runs after the response is returned to the user.
+    """
+    try:
+        # Use IST (Indian Standard Time, UTC+5:30)
+        from datetime import timezone, timedelta
+        ist = timezone(timedelta(hours=5, minutes=30))
+        now_ist = datetime.now(ist)
+        
+        # Save user message to Firebase
+        firebase_service.save_chat_message(
+            user_id=user_id,
+            role="user",
+            content=user_message,
+            metadata={
+                "mood": persona.live_user_state.current_mood.value,
+                "timestamp": now_ist.isoformat()
+            }
+        )
+        
+        # Save AI response to Firebase
+        firebase_service.save_chat_message(
+            user_id=user_id,
+            role="assistant",
+            content=ai_response,
+            metadata={
+                "model": model_name,
+                "timestamp": now_ist.isoformat()
+            },
+            recommended_tools=recommended_tools
+        )
+        
+        # Extract and save key insights from this conversation
+        extracted_insights = insight_extractor.extract_insights(
+            user_message=user_message,
+            ai_response=ai_response,
+            timestamp=datetime.utcnow().isoformat()
+        )
+        
+        # Save significant insights to Firebase
+        insights_saved = 0
+        for insight in extracted_insights:
+            if insight_extractor.should_save_insight(insight):
+                firebase_service.save_key_insight(
+                    user_id=user_id,
+                    insight_type=insight['type'],
+                    content=insight['content'],
+                    original_message=insight['original_message'],
+                    timestamp=insight['timestamp']
+                )
+                insights_saved += 1
+        
+        if insights_saved > 0:
+            print(f"💡 Background: Saved {insights_saved} key insights")
+        
+        # Update live user state
+        updated_state = persona_architect.update_user_state(
+            current_state=persona.live_user_state,
+            action={
+                "type": "chat_message",
+                "content": user_message,
+                "mood": persona.live_user_state.current_mood.value
+            }
+        )
+        firebase_service.update_live_state(user_id, updated_state)
+        
+        print(f"✅ Background: Chat saved and state updated for {user_id}")
+        
+    except Exception as e:
+        print(f"❌ Background task error: {e}")
+        # Don't raise - background task failure shouldn't affect user response
+
+
+# ============================================================================
 # CHAT ENDPOINT
 # ============================================================================
 
 @app.post("/api/chat", response_model=ChatResponse)
-async def chat(request: ChatRequest):
+async def chat(request: ChatRequest, background_tasks: BackgroundTasks):
     """
     Chat with AI assistant using personalized persona.
     
     This endpoint:
     1. Retrieves user's persona (personality profile + live state)
-    2. Optionally loads previous chat history from Firebase
-    3. Generates AI response using Gemini with full context
-    4. Saves both user message and AI response to chat history
-    5. Updates live user state (increments chat_message_count)
+    2. Generates AI response using Gemini with full context
+    3. Returns response immediately to user
+    4. Saves messages and updates state in background (non-blocking)
     
     The AI response is personalized based on:
     - Quiz answers (personality profile)
     - Current mood and stress level (live state)
     - Recent wellness tool usage (coping successes)
     - Recent stressors
-    - Previous conversation context
+    - Key insights from past conversations
     
-    Flow: Flutter Chat UI → This Endpoint → Gemini AI → Response + State Update
+    Flow: Flutter Chat UI → This Endpoint → Gemini AI → Immediate Response → Background Save
     """
     try:
         print(f"💬 Processing chat for user {request.user_id}...")
@@ -346,8 +432,12 @@ async def chat(request: ChatRequest):
                 detail="Message cannot be empty"
             )
         
-        # Get user persona
-        persona = firebase_service.get_user_persona(request.user_id)
+        # ⚡ Fetch persona and key insights in parallel (non-blocking)
+        loop = asyncio.get_event_loop()
+        persona, key_insights = await asyncio.gather(
+            loop.run_in_executor(None, firebase_service.get_user_persona, request.user_id),
+            loop.run_in_executor(None, firebase_service.get_relevant_insights, request.user_id, 5)
+        )
         
         if not persona:
             raise HTTPException(
@@ -355,100 +445,40 @@ async def chat(request: ChatRequest):
                 detail=f"No persona found for user {request.user_id}. Generate persona first."
             )
         
-        # Get chat history if requested
-        chat_history = []
-        if request.include_history:
-            # ⚡ OPTIMIZED: Use cached version (10 messages, 0ms if cached)
-            chat_history = firebase_service.get_chat_history_optimized(
-                user_id=request.user_id,
-                limit=10,  # Reduced from 50! Optimal for AI context
-                use_cache=True  # Enable in-memory caching
-            )
-            print(f"📚 Loaded {len(chat_history)} messages (optimized with cache)")
-        
-        # 🧠 NEW: Load key insights for long-term memory
-        key_insights = firebase_service.get_relevant_insights(
-            user_id=request.user_id,
-            limit=5  # Last 5 important moments
-        )
         print(f"💡 Loaded {len(key_insights)} key insights for context")
         
-        # Generate AI response using persona + recent history + key insights
-        # Returns tuple: (response_text, recommended_tools)
+        # ⚡ UNIFIED: Single LLM call returns both response + tool recommendations
+        # Returns tuple: (response_text, recommended_tools_dict)
+        start_time = time.time()
+        
         ai_response, recommended_tools = persona_architect.chat(
             user_message=request.message,
             persona=persona,
-            chat_history=chat_history,
+            chat_history=[],  # No past messages - only key insights used
             key_insights=key_insights
         )
         
-        print(f"✅ Generated AI response ({len(ai_response)} chars)")
-        print(f"🔧 Recommended tools: {recommended_tools}")
-        print(f"🔧 Type of recommended_tools: {type(recommended_tools)}")
+        ai_time = time.time() - start_time
+        print(f"⏱️ AI response generated in {ai_time:.2f}s ({ai_time*1000:.0f}ms)")
         
-        # Use IST (Indian Standard Time, UTC+5:30)
-        from datetime import timezone, timedelta
-        ist = timezone(timedelta(hours=5, minutes=30))
-        now_ist = datetime.now(ist)
+        # Convert to integers for consistent API response
+        recommended_tools = {k: int(v) for k, v in recommended_tools.items()}
         
-        # Save user message to Firebase
-        firebase_service.save_chat_message(
+        print(f"✅ Generated unified response ({len(ai_response)} chars)")
+        print(f"🔧 Tool recommendations: {recommended_tools}")
+        
+        # 🚀 RETURN RESPONSE IMMEDIATELY - Save in background
+        background_tasks.add_task(
+            save_chat_and_update_state,
             user_id=request.user_id,
-            role="user",
-            content=request.message,
-            metadata={
-                "mood": persona.live_user_state.current_mood.value,
-                "timestamp": now_ist.isoformat()
-            }
-        )
-        
-        # Save AI response to Firebase
-        firebase_service.save_chat_message(
-            user_id=request.user_id,
-            role="assistant",
-            content=ai_response,
-            metadata={
-                "model": MODEL_NAME,
-                "timestamp": now_ist.isoformat()
-            },
-            recommended_tools=recommended_tools  # Add recommended tools to the saved message
-        )
-        
-        # 🧠 NEW: Extract and save key insights from this conversation
-        extracted_insights = insight_extractor.extract_insights(
             user_message=request.message,
             ai_response=ai_response,
-            timestamp=datetime.utcnow().isoformat()
+            recommended_tools=recommended_tools,
+            persona=persona,
+            model_name=MODEL_NAME
         )
         
-        # Save significant insights to Firebase
-        insights_saved = 0
-        for insight in extracted_insights:
-            if insight_extractor.should_save_insight(insight):
-                firebase_service.save_key_insight(
-                    user_id=request.user_id,
-                    insight_type=insight['type'],
-                    content=insight['content'],
-                    original_message=insight['original_message'],
-                    timestamp=insight['timestamp']
-                )
-                insights_saved += 1
-        
-        if insights_saved > 0:
-            print(f"💡 Saved {insights_saved} key insights for long-term memory")
-        
-        # Update live user state (increment chat count)
-        updated_state = persona_architect.update_user_state(
-            current_state=persona.live_user_state,
-            action={
-                "type": "chat_message",
-                "content": request.message,
-                "mood": persona.live_user_state.current_mood.value
-            }
-        )
-        firebase_service.update_live_state(request.user_id, updated_state)
-        
-        print(f"✅ Chat processed successfully for user {request.user_id}")
+        print(f"⚡ Response returned immediately - saving in background")
         
         return ChatResponse(
             success=True,
@@ -642,36 +672,7 @@ async def get_stats():
         }
 
 
-@app.get("/api/cache/stats")
-async def get_cache_stats():
-    """
-    ⚡ Get chat history cache statistics for performance monitoring.
-    
-    Shows:
-    - Number of cached users
-    - Total cache entries
-    - Cache TTL setting
-    - List of cached user IDs
-    
-    Useful for monitoring cache hit rates and performance optimization.
-    """
-    try:
-        stats = firebase_service.get_cache_stats()
-        return {
-            "success": True,
-            "cache_stats": stats,
-            "performance_notes": {
-                "cache_hit": "~0-1ms response time",
-                "cache_miss": "~100-200ms (Firebase query)",
-                "ttl": "5 minutes (300 seconds)",
-                "optimization": "Cache automatically invalidated on new messages"
-            }
-        }
-    except Exception as e:
-        return {
-            "success": False,
-            "error": str(e)
-        }
+
 
 
 @app.get("/api/insights/{user_id}")

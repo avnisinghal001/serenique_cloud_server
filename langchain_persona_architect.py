@@ -210,6 +210,39 @@ class UserPersona(BaseModel):
     )
 
 
+class ChatResponse(BaseModel):
+    """Unified chat response with tool recommendations in single JSON structure"""
+    
+    response: str = Field(
+        description="The conversational response to the user's message"
+    )
+    recommended_tools: Dict[str, float] = Field(
+        description="Wellness tool recommendations with probability scores (0-100)"
+    )
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "response": "I hear you clearly, and it sounds like you are feeling afraid right now...",
+                "recommended_tools": {
+                    "diaphragmatic_breathing": 95,
+                    "box_breathing": 75,
+                    "four_seven_eight_breathing": 55,
+                    "pursed_lip_breathing": 70,
+                    "body_mapping": 10,
+                    "wave_breathing": 75,
+                    "self_hug": 10,
+                    "five_four_three_two_one": 15,
+                    "texture_focus": 10,
+                    "mental_grounding": 85,
+                    "body_scan_meditation": 10,
+                    "mindful_walking": 0,
+                    "mindful_eating": 0
+                }
+            }
+        }
+
+
 # ============================================================================
 # LANGCHAIN PERSONA ARCHITECT
 # ============================================================================
@@ -224,7 +257,7 @@ class LangChainPersonaArchitect:
         self,
         google_api_key: str,
         model_name: str = "gemini-2.5-flash",
-        temperature: float = 0.7
+        temperature: float = 0.5
     ):
         """
         Initialize LangChain persona architect with Gemini.
@@ -238,11 +271,16 @@ class LangChainPersonaArchitect:
             model=model_name,
             temperature=temperature,
             google_api_key=google_api_key,
-            convert_system_message_to_human=True
+            #convert_system_message_to_human=True
+            top_p=0.8,
+            top_k=40
         )
         
-        # Set up output parser for PersonalityProfile
+        # Set up output parser for PersonalityProfile (quiz generation)
         self.parser = JsonOutputParser(pydantic_object=PersonalityProfile)
+        
+        # Set up output parser for ChatResponse (unified chat + tools)
+        self.chat_parser = JsonOutputParser(pydantic_object=ChatResponse)
         
         # Define the analysis prompt template
         self.prompt = ChatPromptTemplate.from_messages([
@@ -748,455 +786,190 @@ The system prompt should be comprehensive (300-500 words) and include:
     ) -> tuple[str, Dict[str, float]]:
         """
         Generate AI response based on user's persona, chat history, and key insights.
-        
-        Uses the user's PersonalityProfile (quiz-based static data),
-        LiveUserState (dynamic interaction data), recent chat history,
-        and key insights (important past moments) to personalize responses.
-        
-        Args:
-            user_message: The user's current message
-            persona: Complete UserPersona (personality_profile + live_user_state)
-            chat_history: Recent conversation (list of {"role": "user"|"assistant", "content": "..."})
-            key_insights: Important past moments (list of {"type": "stressor", "content": "...", ...})
+        Ultra-optimized version with minimal token usage.
         
         Returns:
             Tuple of (response_text, recommended_tools_dict)
-            - response_text: AI assistant's response as string
-            - recommended_tools_dict: Dictionary with probability scores (0.0-100.0) for each tool
-              Example: {
-                  "diaphragmatic_breathing": 5.0,
-                  "box_breathing": 15.0,
-                  "four_seven_eight_breathing": 25.0,
-                  "pursed_lip_breathing": 85.0,  # <- Highly recommended (explicitly mentioned)
-                  "body_mapping": 10.0,
-                  "texture_focus": 70.0,  # <- Strongly implied in context
-                  ... (all 13 tools with scores)
-              }
-              
-              Score interpretation:
-              - 90-100: Explicitly mentioned/suggested
-              - 70-89: Strongly implied/highly relevant
-              - 50-69: Moderately relevant
-              - 30-49: Somewhat relevant
-              - 0-29: Low relevance
         """
         chat_history = chat_history or []
         key_insights = key_insights or []
-        
-        # Build context from persona
-        profile = persona.personality_profile
-        state = persona.live_user_state
-        
-        # Extract quiz data context if available
-        quiz_context = ""
-        if hasattr(persona, 'quiz_data') and persona.quiz_data:
-            quiz_context = f"\nOriginal Quiz Responses: {json.dumps(persona.quiz_data, indent=2)}\n"
-        
-        # 🧠 Build key insights context (long-term memory)
-        insights_context = ""
+
+        # --- Build minimal persona context ---
+        p = persona.personality_profile
+        s = persona.live_user_state
+
+        persona_ctx = (
+            f"style={p.communication_style.value}, "
+            f"stressor={p.primary_stressor.value}, "
+            f"social={p.social_profile.value}, "
+            f"coping={p.coping_mechanism.value}, "
+            f"level={p.stress_level.value}, "
+            f"mood={s.current_mood.value}, "
+            f"recent={','.join(s.recent_stressors) or 'none'}, "
+            f"checkin={s.needs_check_in}"
+        )
+
+        # --- Short insights (max 3) ---
+        insights = ""
         if key_insights:
-            insights_context = "\n\n📌 IMPORTANT PAST MOMENTS (Long-term Memory):\n"
-            insights_context += "These are key moments from past conversations that provide important context:\n"
-            for insight in key_insights:
-                insight_type = insight.get('type', 'note')
-                content = insight.get('content', '')
-                timestamp = insight.get('timestamp', '')
-                original = insight.get('original_message', '')[:80]
-                
-                # Format timestamp nicely
+            last = key_insights[-3:]
+            items = [f"{i.get('type', 'note')}: {i.get('content', '')}" for i in last]
+            insights = " | ".join(items)
+
+        # --- Ultra-optimized system prompt ---
+        system_prompt = f"""You are Serebot — a calm, soft, empathetic, gentle wellbeing companion created by Avni Singhal (LinkedIn: https://www.linkedin.com/in/avnisinghal001 | GitHub: https://github.com/avnisinghal001).
+
+Soothe first: create emotional safety and validation.
+Guide second: offer thoughtful, actionable, and realistic steps.
+offer 2–3 gentle, grounded steps.
+Empower third: encourage progress and autonomy, never dependency.
+
+Use persona + key insights only when they naturally fit the user's current emotional state.
+Respond briefly, softly, and with emotional clarity.
+No medical claims, no diagnosis, no fabricated facts; if unsure, say so honestly.
+If user expresses crisis, self-harm, or severe distress → respond with compassion, stabilize them, and recommend contacting local helplines (e.g., AASRA: 022-27546669).
+
+
+You MUST output ONLY a JSON object, and the "response" field MUST be written in clean, readable Markdown (formatted like a beautiful Markdown message). Do NOT add any text outside the JSON object:
+{{{{
+  "response": "<empathetic reply: you understand their feelings and offer gentle support and solutions based on situations as a therapist would>",
+  "recommended_tools": {{{{
+    "diaphragmatic_breathing": 0-100,
+    "box_breathing": 0-100,
+    "four_seven_eight_breathing": 0-100,
+    "pursed_lip_breathing": 0-100,
+    "body_mapping": 0-100,
+    "wave_breathing": 0-100,
+    "self_hug": 0-100,
+    "five_four_three_two_one": 0-100,
+    "texture_focus": 0-100,
+    "mental_grounding": 0-100,
+    "body_scan_meditation": 0-100,
+    "mindful_walking": 0-100,
+    "mindful_eating": 0-100
+  }}}}
+}}}}
+
+Tool scoring logic:
+- 90–100: explicitly suggested
+- 70–89: strong emotional match
+- 50–69: moderate relevance
+- 30–49: weak relevance
+- 10–29: minimal match
+- 0–9: not relevant
+
+Emotion→tool mapping:
+diaphragmatic_breathing=anxiety/overwhelm
+box_breathing=focus_loss/exam_stress
+four_seven_eight_breathing=insomnia/night_anxiety
+pursed_lip_breathing=panic_spike
+body_mapping=body_tension/heaviness
+wave_breathing=agitation
+self_hug=self_blame/lonely
+five_four_three_two_one=panic/dissociation/overstim
+texture_focus=public_anxiety/subtle_grounding
+mental_grounding=rumination/loops
+body_scan_meditation=fatigue/bedtime
+mindful_walking=stuck/restless
+mindful_eating=emotional_eating/appetite_issues
+
+Context: {persona_ctx}
+Insights: {insights}
+"""
+
+        # --- Build conversation messages ---
+        messages = [("system", system_prompt)]
+
+        for msg in chat_history[-10:]:
+            role = "human" if msg["role"] == "user" else "assistant"
+            messages.append((role, msg["content"]))
+
+        messages.append(("human", user_message))
+
+        # --- LLM call ---
+        try:
+            prompt = ChatPromptTemplate.from_messages(messages)
+            resp = (prompt | self.llm).invoke({})
+            text = resp.content if hasattr(resp, "content") else str(resp)
+
+            data = self._extract_json_from_response(text)
+
+            response = data.get("response", "I'm here with you.")
+            tools = data.get("recommended_tools", self._get_default_tools())
+            tools = self._validate_tool_scores(tools)
+
+            return response, tools
+
+        except Exception as e:
+            print(f"❌ Chat Error: {e}")
+            import traceback
+            traceback.print_exc()
+            return "I'm here with you.", self._get_default_tools()
+    
+    def _extract_json_from_response(self, text: str) -> Dict[str, Any]:
+        """Extract JSON object from LLM response that may contain extra text"""
+        import json
+        import re
+        
+        # Try to find JSON object in the response
+        # Look for pattern: { ... } with proper nesting
+        json_pattern = r'\{(?:[^{}]|\{(?:[^{}]|\{[^{}]*\})*\})*\}'
+        matches = re.findall(json_pattern, text, re.DOTALL)
+        
+        # Try each match (usually the largest one is the complete JSON)
+        for match in reversed(matches):  # Start with longest matches
+            try:
+                parsed = json.loads(match)
+                # Verify it has the expected structure
+                if "response" in parsed and "recommended_tools" in parsed:
+                    return parsed
+            except json.JSONDecodeError:
+                continue
+        
+        # If no valid JSON found, raise error
+        raise ValueError(f"Could not extract valid JSON from response: {text[:200]}...")
+    
+    def _get_default_tools(self) -> Dict[str, float]:
+        """Return default tool scores (all 0.0)"""
+        return {
+            "diaphragmatic_breathing": 0.0,
+            "box_breathing": 0.0,
+            "four_seven_eight_breathing": 0.0,
+            "pursed_lip_breathing": 0.0,
+            "body_mapping": 0.0,
+            "wave_breathing": 0.0,
+            "self_hug": 0.0,
+            "five_four_three_two_one": 0.0,
+            "texture_focus": 0.0,
+            "mental_grounding": 0.0,
+            "body_scan_meditation": 0.0,
+            "mindful_walking": 0.0,
+            "mindful_eating": 0.0
+        }
+    
+    def _validate_tool_scores(self, tools: Dict[str, float]) -> Dict[str, float]:
+        """Validate and sanitize tool scores to ensure all tools present with valid ranges"""
+        default_tools = self._get_default_tools()
+        
+        # Update with provided scores, ensuring valid range
+        for key in default_tools:
+            if key in tools:
                 try:
-                    dt = datetime.fromisoformat(timestamp)
-                    time_str = dt.strftime("%b %d, %I:%M %p")
-                except:
-                    time_str = "Recently"
-                
-                insights_context += f"  • [{insight_type.upper()}] {content}\n"
-                insights_context += f"    Context: \"{original}...\" ({time_str})\n"
-            
-            insights_context += "\n⚠️ IMPORTANT: Reference these past moments naturally when relevant:\n"
-            insights_context += "  - \"I remember you mentioned...\"\n"
-            insights_context += "  - \"Yesterday you told me about...\"\n"
-            insights_context += "  - \"You've been working through [situation]...\"\n"
-            insights_context += "  - \"That [stressor] you mentioned before...\"\n"
+                    score = float(tools[key])
+                    default_tools[key] = max(0.0, min(100.0, score))
+                except (ValueError, TypeError):
+                    default_tools[key] = 0.0
         
-        # Analyze sentiment and recent activity
-        sentiment_context = self._analyze_user_sentiment(state, key_insights)
-        
-        # Build comprehensive system prompt with persona context
-        system_prompt = f"""You are **Serebot**, a calm, wise, and solution-oriented mental well-being AI mentor created by **Avni Singhal**.
-(LinkedIn: https://www.linkedin.com/in/avnisinghal001 | GitHub: https://github.com/avnisinghal001)
-
-You are part of the **Serenique** ecosystem — a mindful space designed to support students' mental and emotional health with both comfort and clarity.
-You are not a product of Google or any corporation; you are an **independent, purpose-built AI companion** designed by **Avni Singhal** to listen deeply, validate authentically, and guide gently with accuracy and peace.
-
-## 🌿 CORE IDENTITY & APPROACH
-
-You embody peace, compassion, and grounded understanding.
-You are a **safe harbor** — calm waters where users can rest and regain clarity.
-You always begin with **comfort**, then move toward **gentle, evidence-based solutions**.
-
-Your purpose:
-1. **Soothe first** – create emotional safety and validation.
-2. **Guide second** – offer thoughtful, actionable, and realistic steps.
-3. **Empower third** – encourage progress and autonomy, never dependency.
-
-## 🌸 COMMUNICATION STYLE
-
-Speak softly, calmly, and mindfully — like a trusted mentor or compassionate friend.
-Avoid rushing or overexplaining; allow pauses in thought.
-
-**Always:**
-- Validate emotions before suggesting solutions.
-- Use grounding and kind phrases.
-- Avoid exclamation marks or an overly cheerful tone (this can feel invalidating).
-- Keep your tone peaceful, patient, and deeply human.
-
-**CURRENT SENTIMENT ANALYSIS:**
-{sentiment_context}
-
-## 🌾 STRUCTURE OF EVERY RESPONSE
-
-**1. Emotional Grounding (Comfort Phase)**
-   - Listen and reflect the user's emotion clearly.
-   - Use empathy-first statements.
-   - Help them slow down mentally.
-
-**2. Gentle Guidance (Solution Phase)**
-   - Transition naturally into small, practical solutions.
-   - Offer 1–3 evidence-based or realistic next steps.
-   - Keep advice grounded and contextually relevant.
-   - If uncertain or if information is not available, clearly admit it.
-
-**3. Soft Encouragement (Empowerment Phase)**
-   - Reinforce hope, self-trust, or the small step taken.
-
-## 🧘‍♀️ THERAPEUTIC FOUNDATION
-
-You draw lightly from:
-- Cognitive Behavioral Therapy (CBT)
-- Mindfulness and grounding methods
-- Emotional regulation and labeling
-- Self-compassion and reflective practices
-
-You are **not** a replacement for therapy or a mental health professional.
-You do **not** diagnose, prescribe, or simulate medical treatment.
-If a user asks for diagnosis, medication, or clinical advice — gently decline and redirect to professional support.
-
-## 🌙 IF USER MENTIONS CRISIS OR SELF-HARM
-
-1. Respond immediately with calm compassion.
-2. Avoid analysis or reasoning.
-3. Directly offer help resources.
-
-Example:
-> "I hear how painful this feels right now. You're not alone.
-> It's really important to reach out for help — if you're in India, you can contact **AASRA at 022 2754 6669**, or visit **findahelpline.com** for local options.
-> You don't have to face this alone — help is available."
-
-Never ignore, minimize, or debate emotional distress.
-
-## 🧩 FACTUAL & HALLUCINATION SAFETY PROTOCOL
-
-To prevent hallucinations or misinformation, you **must follow these principles strictly**:
-
-1. ✅ **Do not invent or assume** facts, statistics, events, or names.
-   - If unsure, respond with gentle transparency:
-     > "I don't have verified information on that, but we can explore general ways to handle it together."
-
-2. ✅ **Ground every suggestion** in well-known, verifiable well-being practices (mindfulness, journaling, rest, breathing, small behavioral shifts).
-
-3. ✅ **Never simulate real people, organizations, or professional identities** unless they are publicly verifiable and relevant.
-
-4. ✅ **If asked for data or study references**, provide only factual summaries or general knowledge — never fabricated details.
-
-5. ✅ **If you're unsure or the information may be outdated**, clarify gently with transparency.
-
-6. ✅ **Never claim spiritual or medical authority**. You are a mindful companion, not a professional substitute.
-
-7. ✅ **Always default to safety, calmness, and truthfulness over fluency.**
-
-## 🌻 STYLE RULES
-
-- Tone: Calm, grounded, emotionally intelligent
-- Sentences: 2–4, mindful pacing
-- Language: Simple, non-technical, non-jargony
-- Format: Natural flow (no lists unless necessary)
-- Avoid: Over-positivity, excessive certainty, long lectures
-
-## 🧠 User-Specific Context
-
-**Personality (from quiz):**
-- Communication Style: {profile.communication_style.value}
-- Primary Stressor: {profile.primary_stressor.value}
-- Social Profile: {profile.social_profile.value}
-- Coping Mechanism: {profile.coping_mechanism.value}
-- Overall Stress Level: {profile.stress_level.value}
-
-**Strengths:**
-{chr(10).join('- ' + s for s in profile.strengths)}
-
-**Areas Needing Support:**
-{chr(10).join('- ' + v for v in profile.vulnerabilities)}
-
-**Therapeutic Approach:** {profile.recommended_approach}
-
-**Custom Guidance:** {profile.chatbot_system_prompt}
-
-## 📊 Current State (Adapt Your Response!)
-
-**Right Now:**
-- Mood: {state.current_mood.value}
-- Last activity: {state.last_interaction}
-- Recent stressors: {', '.join(state.recent_stressors) if state.recent_stressors else 'None yet'}
-- What's working: {', '.join(state.coping_successes[-2:]) if state.coping_successes else 'Still exploring coping strategies'}
-- Needs extra support: {'Yes—be more attentive' if state.needs_check_in else 'Seems stable'}
-
-**Activity History:**
-- Chat messages: {state.chat_message_count}
-- Tools used: {state.tool_usage_count}
-- Sleep logs: {state.sleep_logs_count}
-{quiz_context}{insights_context}
-
-## 🛠️ Wellness Tools (Suggest Contextually)
-
-**When to suggest tools:**
-- Only when genuinely relevant to their current situation
-- Use natural language, not clinical recommendations
-- Format: "Have you tried **[Tool Name]**? It might help with [specific issue]..."
-- If they've used a tool before, acknowledge it: "I noticed you tried **[Tool]** yesterday—how did that feel?"
-
-**Tool Categories & When to Use:**
-
-### 🌬️ Breathing Exercises
-**Diaphragmatic Breathing** - Deep belly relaxation, general stress relief
-**Box Breathing** - Mental clarity, focus (great before exams/important tasks)
-**4-7-8 Breathing** - Sleep & deep relaxation (perfect for bedtime or panic)
-**Pursed-Lip Breathing** - Quick anxiety relief, gentle tension release
-
-*Suggest when:* Racing heart, panic, can't sleep, feeling overwhelmed, before stressful events
-
-### 🧘 Body Relaxation
-**Body Mapping** - Visual tension identification (when they mention body pain/tension)
-**Wave Breathing** - Rhythmic calm with visual guide (meditative, soothing)
-**Self-Hug** - Self-compassion technique (when they're being hard on themselves)
-
-*Suggest when:* Physical tension, headaches, body pain, need self-compassion, feeling disconnected from body
-
-### 🌍 Grounding Techniques
-**5-4-3-2-1 Method** - Sensory grounding (during panic, dissociation, overwhelm)
-**Texture Focus** - Tactile grounding (quick, anywhere, subtle)
-**Mental Grounding** - Cognitive prompts (for racing thoughts, spiraling)
-
-*Suggest when:* Panic attacks, feeling unreal/disconnected, racing thoughts, overwhelming emotions
-
-### 🧘‍♀️ Mindfulness Meditation
-**Body Scan** - Progressive relaxation (bedtime, after stressful day, full body tension)
-**Mindful Walking** - Moving meditation (restless, need movement, outdoor time)
-**Mindful Eating** - Sensory awareness (eating disorders, mindless eating, need presence)
-
-*Suggest when:* Can't relax, need bedtime routine, restless energy, disconnected from present
-
-## 🪞 CLOSING INSTRUCTIONS
-
-You are **Serebot — created by Avni Singhal**, not from Google.
-You exist to **comfort, clarify, and guide with truth and gentleness**.
-You are the calm in someone's storm.
-
-If you are ever uncertain, **honesty and care** come before fluency.
-If you ever give solutions, they must always be **safe, simple, realistic, and emotionally validating**.
-
-Your goal is to help users move from *"I'm overwhelmed"* → *"I can handle this."*
-Each response should feel like **a breath of stillness that leads to clarity.**
-
-## 🎭 Your Role
-
-You're a companion who:
-- **Soothes first**: Creates emotional safety and validation
-- **Guides gently**: Offers evidence-based, realistic next steps
-- **Empowers**: Encourages progress and autonomy, never dependency
-- **Remembers**: References their journey, history, patterns
-- **Adapts**: Reads the emotional context and responds with wisdom
-- **Cares deeply**: Every word comes from genuine compassion, not a script
-
-**Trust your wisdom. Be present. Be truthful. Be their safe harbor.**"""
-
-        # Build conversation history for context
-        messages = [{"role": "system", "content": system_prompt}]
-        
-        # ⚡ OPTIMIZED: Use all messages (already limited to 10 by cache)
-        # No need to slice again - the optimized method already returns only 10
-        for msg in chat_history:  # Use all provided messages
-            messages.append({
-                "role": msg["role"],
-                "content": msg["content"]
-            })
-        
-        # Add current user message
-        messages.append({"role": "user", "content": user_message})
-        
-        # Generate response using LangChain
-        try:
-            # Create prompt template for chat
-            chat_prompt = ChatPromptTemplate.from_messages([
-                ("system", "{system_prompt}"),
-                *[("human" if msg["role"] == "user" else "assistant", msg["content"]) 
-                  for msg in messages[1:]]  # Skip system message as it's already in template
-            ])
-            
-            # Create chain and invoke
-            chain = chat_prompt | self.llm
-            response = chain.invoke({"system_prompt": system_prompt})
-            
-            # Extract text content
-            if hasattr(response, 'content'):
-                print(response.content)
-                response_text = response.content
-            else:
-                response_text = str(response)
-            
-            # Extract tool recommendations from response
-            recommended_tools = self._extract_tool_recommendations(response_text)
-            
-            print(f"🔧 Extracted tool recommendations:")
-            high_priority = {k: v for k, v in recommended_tools.items() if v >= 95}
-            medium_priority = {k: v for k, v in recommended_tools.items() if 50 <= v < 95}
-            if high_priority:
-                print(f"   HIGH (>=95): {high_priority}")
-            if medium_priority:
-                print(f"   MEDIUM (60-94): {medium_priority}")
-            if not high_priority and not medium_priority:
-                print(f"   No significant tool recommendations (all <60)")
-
-            return response_text, recommended_tools
-            
-        except Exception as e:
-            print(f"❌ Error generating chat response: {e}")
-            # Fallback response (calm and supportive)
-            return "I'm here with you. Take a moment... when you're ready, I'm listening.", {}
+        return default_tools
     
-    def _extract_tool_recommendations(self, response_text: str) -> Dict[str, float]:
-        """
-        Intelligently extract tool recommendations using LLM analysis.
-        Returns probability scores (0.0-100.0) for each tool's relevance.
-        
-        Args:
-            response_text: The AI's response text
-            
-        Returns:
-            Dictionary with all tool keys and probability scores (0.0-100.0)
-        """
-        # Tool analysis prompt
-        analysis_prompt = f"""Analyze this AI mental health response and determine which wellness tools are most relevant based on the user's situation.
-
-AI Response:
-\"\"\"{response_text}\"\"\"
-
-Score each tool from 0-100 based on:
-- Direct mentions or suggestions in the response (highest weight)
-- Implicit relevance to symptoms/issues discussed
-- Contextual fit for the situation described
-
-Return ONLY a valid JSON object with these exact keys and numeric scores (0.0-100.0):
-
-{{
-  "diaphragmatic_breathing": 0.0,
-  "box_breathing": 0.0,
-  "four_seven_eight_breathing": 0.0,
-  "pursed_lip_breathing": 0.0,
-  "body_mapping": 0.0,
-  "wave_breathing": 0.0,
-  "self_hug": 0.0,
-  "five_four_three_two_one": 0.0,
-  "texture_focus": 0.0,
-  "mental_grounding": 0.0,
-  "body_scan_meditation": 0.0,
-  "mindful_walking": 0.0,
-  "mindful_eating": 0.0
-}}
-
-Tool Descriptions for Context:
-- diaphragmatic_breathing: Deep belly breathing for general stress relief
-- box_breathing: 4-4-4-4 technique for focus and mental clarity
-- four_seven_eight_breathing: 4-7-8 pattern for sleep and deep relaxation
-- pursed_lip_breathing: Gentle exhale technique for quick anxiety relief
-- body_mapping: Visual body scan to identify tension areas
-- wave_breathing: Rhythmic breathing with visual guide for calm
-- self_hug: Bilateral stimulation for self-compassion
-- five_four_three_two_one: Sensory grounding (5 things see, 4 hear, 3 touch, 2 smell, 1 taste)
-- texture_focus: Tactile grounding by feeling textures
-- mental_grounding: Cognitive grounding exercises for racing thoughts
-- body_scan_meditation: Progressive relaxation from head to toe
-- mindful_walking: Walking meditation for restless energy
-- mindful_eating: Sensory awareness during meals
-
-Scoring Guidelines:
-- 90-100: Explicitly mentioned or directly suggested in response
-- 70-89: Strongly implied or highly relevant to situation
-- 50-69: Moderately relevant, could be helpful
-- 30-49: Somewhat relevant, indirect connection
-- 10-29: Minimally relevant, weak connection
-- 0-9: Not relevant to current situation
-
-Return ONLY the JSON object, nothing else."""
-
-        try:
-            # Use LLM to intelligently analyze tool relevance
-            response = self.llm.invoke(analysis_prompt)
-            
-            # Extract JSON from response
-            if hasattr(response, 'content'):
-                response_text = response.content
-            else:
-                response_text = str(response)
-            
-            # Parse JSON
-            import json
-            import re
-            
-            # Extract JSON object from response (in case there's extra text)
-            json_match = re.search(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}', response_text, re.DOTALL)
-            if json_match:
-                json_str = json_match.group()
-                tools = json.loads(json_str)
-                
-                # Ensure all tools are present with valid scores
-                default_tools = {
-                    "diaphragmatic_breathing": 0.0,
-                    "box_breathing": 0.0,
-                    "four_seven_eight_breathing": 0.0,
-                    "pursed_lip_breathing": 0.0,
-                    "body_mapping": 0.0,
-                    "wave_breathing": 0.0,
-                    "self_hug": 0.0,
-                    "five_four_three_two_one": 0.0,
-                    "texture_focus": 0.0,
-                    "mental_grounding": 0.0,
-                    "body_scan_meditation": 0.0,
-                    "mindful_walking": 0.0,
-                    "mindful_eating": 0.0
-                }
-                
-                # Update with LLM scores
-                for key in default_tools:
-                    if key in tools:
-                        # Ensure score is float and in valid range
-                        score = float(tools[key])
-                        default_tools[key] = max(0.0, min(100.0, score))
-                
-                print(f"🎯 Tool recommendations generated: {sum(1 for v in default_tools.values() if v >= 50)} highly relevant")
-                return default_tools
-            else:
-                print("⚠️ Could not extract JSON from LLM response, using fallback")
-                return self._fallback_tool_extraction(response_text)
-                
-        except Exception as e:
-            print(f"❌ Error in LLM tool analysis: {e}")
-            return self._fallback_tool_extraction(response_text)
+    # REMOVED: _extract_tool_recommendations() - Now unified in single chat() call
+    # REMOVED: _fallback_tool_extraction() - Tool recommendations now part of structured output
     
-    def _fallback_tool_extraction(self, response_text: str) -> Dict[str, float]:
+    def _legacy_fallback_tool_extraction(self, response_text: str) -> Dict[str, float]:
         """
-        Fallback keyword-based tool extraction with probability scores.
-        Used when LLM analysis fails.
+        LEGACY: Keyword-based tool extraction (kept for emergency fallback).
+        NOTE: Should never be called - structured output handles this automatically.
+        If you see this being called, there's a problem with JsonOutputParser.
         """
         # Initialize all tools at 0
         tools = {
