@@ -880,9 +880,10 @@ Insights: {insights}
         # --- Build conversation messages ---
         messages = [("system", system_prompt)]
 
-        for msg in chat_history[-10:]:
-            role = "human" if msg["role"] == "user" else "assistant"
-            messages.append((role, msg["content"]))
+        # Add recent chat history (last 5 messages already filtered in main.py)
+        for msg in chat_history:
+            role = "human" if msg.get("role") == "user" else "assistant"
+            messages.append((role, msg.get("content", "")))
 
         messages.append(("human", user_message))
 

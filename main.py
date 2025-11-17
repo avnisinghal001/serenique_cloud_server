@@ -432,11 +432,12 @@ async def chat(request: ChatRequest, background_tasks: BackgroundTasks):
                 detail="Message cannot be empty"
             )
         
-        # ⚡ Fetch persona and key insights in parallel (non-blocking)
+        # ⚡ Fetch persona, key insights, and chat history in parallel (non-blocking)
         loop = asyncio.get_event_loop()
-        persona, key_insights = await asyncio.gather(
+        persona, key_insights, chat_history = await asyncio.gather(
             loop.run_in_executor(None, firebase_service.get_user_persona, request.user_id),
-            loop.run_in_executor(None, firebase_service.get_relevant_insights, request.user_id, 5)
+            loop.run_in_executor(None, firebase_service.get_relevant_insights, request.user_id, 5),
+            loop.run_in_executor(None, firebase_service.get_chat_history, request.user_id, 10)
         )
         
         if not persona:
@@ -445,7 +446,10 @@ async def chat(request: ChatRequest, background_tasks: BackgroundTasks):
                 detail=f"No persona found for user {request.user_id}. Generate persona first."
             )
         
-        print(f"💡 Loaded {len(key_insights)} key insights for context")
+        # Get last 5 messages for context
+        recent_history = chat_history[-5:] if len(chat_history) > 5 else chat_history
+        
+        print(f"💡 Loaded {len(key_insights)} key insights and {len(recent_history)} recent messages for context")
         
         # ⚡ UNIFIED: Single LLM call returns both response + tool recommendations
         # Returns tuple: (response_text, recommended_tools_dict)
@@ -454,7 +458,7 @@ async def chat(request: ChatRequest, background_tasks: BackgroundTasks):
         ai_response, recommended_tools = persona_architect.chat(
             user_message=request.message,
             persona=persona,
-            chat_history=[],  # No past messages - only key insights used
+            chat_history=recent_history,
             key_insights=key_insights
         )
         
