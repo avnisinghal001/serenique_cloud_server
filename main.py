@@ -450,6 +450,50 @@ async def chat(request: ChatRequest, background_tasks: BackgroundTasks):
         # Get last 5 messages for context
         recent_history = chat_history[-5:] if len(chat_history) > 5 else chat_history
         
+        # ⏰ TIME-BASED CHAT FEATURES
+        # 1. Check if last chat was > 5 hours ago → reset to fresh conversation
+        # 2. Check if last chat was < 1 hour ago → add follow-up personalization
+        user_message_to_send = request.message
+        
+        if chat_history and len(chat_history) > 0:
+            # Get timestamp from most recent message
+            last_msg_timestamp = chat_history[-1].get('timestamp', '')
+            
+            if last_msg_timestamp:
+                from datetime import datetime, timedelta, timezone
+                try:
+                    # Parse ISO timestamp with timezone
+                    if last_msg_timestamp.endswith('Z'):
+                        last_time = datetime.fromisoformat(last_msg_timestamp.replace('Z', '+00:00'))
+                    else:
+                        last_time = datetime.fromisoformat(last_msg_timestamp)
+                    
+                    # Get current time in same timezone
+                    if last_time.tzinfo:
+                        now = datetime.now(last_time.tzinfo)
+                    else:
+                        now = datetime.now()
+                    
+                    time_diff = now - last_time
+                    hours_ago = time_diff.total_seconds() / 3600
+                    
+                    # 5-HOUR RESET WINDOW: Start fresh if > 5 hours
+                    if time_diff > timedelta(hours=5):
+                        recent_history = []  # Ignore old history
+                        print(f"⏰ Last chat was {hours_ago:.1f} hours ago - starting fresh conversation")
+                    
+                    # 1-5 HOUR FOLLOW-UP WINDOW: Add personalization if between 1-5 hours
+                    elif time_diff >= timedelta(hours=1) and time_diff <= timedelta(hours=5):
+                        minutes_ago = int(time_diff.total_seconds() / 60)
+                        # Add marker that will be detected by persona_architect
+                        user_message_to_send = f"[FOLLOW_UP:{minutes_ago}min] {request.message}"
+                        print(f"💭 Follow-up detected - last chat {minutes_ago} minutes ago")
+                    
+                    # < 1 HOUR: Normal flow with chat history (no special follow-up)
+                    
+                except Exception as e:
+                    print(f"⚠️ Error parsing timestamp for time-based features: {e}")
+        
         print(f"💡 Loaded {len(key_insights)} key insights and {len(recent_history)} recent messages for context")
         
         # ⚡ UNIFIED: Single LLM call returns both response + tool recommendations
@@ -457,7 +501,7 @@ async def chat(request: ChatRequest, background_tasks: BackgroundTasks):
         start_time = time.time()
         
         ai_response, recommended_tools = persona_architect.chat(
-            user_message=request.message,
+            user_message=user_message_to_send,
             persona=persona,
             chat_history=recent_history,
             key_insights=key_insights,
