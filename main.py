@@ -432,12 +432,13 @@ async def chat(request: ChatRequest, background_tasks: BackgroundTasks):
                 detail="Message cannot be empty"
             )
         
-        # ⚡ Fetch persona, key insights, and chat history in parallel (non-blocking)
+        # ⚡ Fetch persona, key insights, chat history, and full name in parallel (non-blocking)
         loop = asyncio.get_event_loop()
-        persona, key_insights, chat_history = await asyncio.gather(
+        persona, key_insights, chat_history, user_full_name = await asyncio.gather(
             loop.run_in_executor(None, firebase_service.get_user_persona, request.user_id),
             loop.run_in_executor(None, firebase_service.get_relevant_insights, request.user_id, 5),
-            loop.run_in_executor(None, firebase_service.get_chat_history, request.user_id, 10)
+            loop.run_in_executor(None, firebase_service.get_chat_history, request.user_id, 10),
+            loop.run_in_executor(None, firebase_service.get_user_full_name, request.user_id)
         )
         
         if not persona:
@@ -459,7 +460,8 @@ async def chat(request: ChatRequest, background_tasks: BackgroundTasks):
             user_message=request.message,
             persona=persona,
             chat_history=recent_history,
-            key_insights=key_insights
+            key_insights=key_insights,
+            user_full_name=user_full_name
         )
         
         ai_time = time.time() - start_time

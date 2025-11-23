@@ -283,6 +283,31 @@ class FirebaseService:
         except Exception as e:
             print(f"❌ Error marking persona generated for user {user_id}: {e}")
             return False
+
+    def get_user_full_name(self, user_id: str) -> Optional[str]:
+        """
+        Retrieve the user's full name from the users collection.
+        Args:
+            user_id: User ID from Firebase Authentication
+        Returns:
+            Full name as string if found, else None
+        """
+        try:
+            doc_ref = self.db.collection("users").document(user_id)
+            doc = doc_ref.get()
+            if not doc.exists:
+                print(f"ℹ️  No user document found for {user_id}")
+                return None
+            user_data = doc.to_dict()
+            full_name = user_data.get("fullName")
+            if full_name:
+                print(f"✅ Retrieved full name for user {user_id}: {full_name}")
+            else:
+                print(f"ℹ️  No full name found for user {user_id}")
+            return full_name
+        except Exception as e:
+            print(f"❌ Error retrieving full name for user {user_id}: {e}")
+            return None
     
     # ========================================================================
     # CHAT HISTORY OPERATIONS

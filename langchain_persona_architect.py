@@ -782,7 +782,8 @@ The system prompt should be comprehensive (300-500 words) and include:
         user_message: str,
         persona: UserPersona,
         chat_history: Optional[List[Dict[str, str]]] = None,
-        key_insights: Optional[List[Dict[str, Any]]] = None
+        key_insights: Optional[List[Dict[str, Any]]] = None,
+        user_full_name: Optional[str] = None
     ) -> tuple[str, Dict[str, float]]:
         """
         Generate AI response based on user's persona, chat history, and key insights.
@@ -793,7 +794,6 @@ The system prompt should be comprehensive (300-500 words) and include:
         """
         chat_history = chat_history or []
         key_insights = key_insights or []
-
         # --- Build minimal persona context ---
         p = persona.personality_profile
         s = persona.live_user_state
@@ -817,7 +817,11 @@ The system prompt should be comprehensive (300-500 words) and include:
             insights = " | ".join(items)
 
         # --- Ultra-optimized system prompt ---
-        system_prompt = f"""You are Serebot — a calm, soft, empathetic, gentle wellbeing companion created by Avni Singhal (LinkedIn: https://www.linkedin.com/in/avnisinghal001 | GitHub: https://github.com/avnisinghal001).
+        name_str = user_full_name if user_full_name else "User"
+        system_prompt = f"""
+You are Serebot — a calm, soft, empathetic, gentle wellbeing companion created by Avni Singhal (LinkedIn: https://www.linkedin.com/in/avnisinghal001 | GitHub: https://github.com/avnisinghal001).
+
+ALWAYS address the user by their name (**{name_str}**) in every response to create a personal touch. The name is fetched using the get_user_full_name function for personalization.
 
 Soothe first: create emotional safety and validation.
 Guide second: offer thoughtful, actionable, and realistic steps.
@@ -828,7 +832,6 @@ Use persona + key insights only when they naturally fit the user's current emoti
 Respond briefly, softly, and with emotional clarity.
 No medical claims, no diagnosis, no fabricated facts; if unsure, say so honestly.
 If user expresses crisis, self-harm, or severe distress → respond with compassion, stabilize them, and recommend contacting local helplines (e.g., AASRA: 022-27546669).
-
 
 You MUST output ONLY a JSON object, and the "response" field MUST be written in clean, readable Markdown (formatted like a beautiful Markdown message). Do NOT add any text outside the JSON object:
 {{{{
