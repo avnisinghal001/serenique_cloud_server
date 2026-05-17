@@ -14,9 +14,15 @@ build/
 .coverage
 htmlcov/
 
-# Ignore local environment files
-.env.local
-.env.*.local
+# Ignore virtual environments (never deploy these)
+venv/
+.venv/
+env/
+
+# Ignore ALL environment files (secrets must stay off Vercel filesystem)
+.env
+.env.*
+!.env.example
 
 # Ignore Git
 .git/
@@ -29,12 +35,18 @@ htmlcov/
 *.swo
 *~
 
+# Firebase service account keys (NEVER deploy — use FIREBASE_CREDENTIALS env var on Vercel)
+*firebase*adminsdk*.json
+serenique-avni-firebase-adminsdk-fbsvc-40c2275922.json
+serviceAccountKey.json
+firebase-service-account.json
+credentials.json
+
 # Keep only essential files for deployment
 !api/
 !main.py
 !firebase_service.py
 !langchain_persona_architect.py
 !insight_extractor.py
-!serenique-avni-firebase-adminsdk-fbsvc-40c2275922.json
 !requirements.txt
 !vercel.json

@@ -111,7 +111,7 @@ class PersonalityProfile(BaseModel):
         max_length=5
     )
     recommended_approach: str = Field(
-        description="Recommended therapeutic approach (CBT, ACT, Emotion-Focused, etc.)"
+        description="Recommended wellness support approach inspired by evidence-based frameworks (e.g., mindfulness-based coping, cognitive reframing, strengths-based encouragement)"
     )
     
     # Chatbot behavior configuration
@@ -119,7 +119,7 @@ class PersonalityProfile(BaseModel):
         description="Tone the chatbot should use (e.g., 'warm and empathetic', 'structured and logical')"
     )
     chatbot_methodology: str = Field(
-        description="Therapeutic methodology to apply (e.g., 'CBT-based cognitive restructuring', 'emotion-focused validation')"
+        description="Wellness support style to apply (e.g., 'mindfulness-inspired reframing', 'strengths-based encouragement', 'validation-forward listening'). Must not imply clinical treatment."
     )
     proactive_triggers: List[str] = Field(
         description="Situations where chatbot should proactively reach out",
@@ -129,7 +129,7 @@ class PersonalityProfile(BaseModel):
     
     # System prompt for AI chatbot
     chatbot_system_prompt: str = Field(
-        description="Complete system prompt for AI chatbot personalization"
+        description="Complete system prompt for AI companion personalization. MUST explicitly state that Serebot is a wellness companion and NOT a therapist, psychologist, or medical provider. MUST include a direction to recommend professional help for crises."
     )
     
     # Metadata
@@ -284,13 +284,13 @@ class LangChainPersonaArchitect:
         
         # Define the analysis prompt template
         self.prompt = ChatPromptTemplate.from_messages([
-            ("system", """You are an expert clinical psychologist specializing in personality assessment and therapeutic matching for college students. Your role is to analyze quiz responses and generate a comprehensive personality profile that will guide an AI mental wellness chatbot.
+            ("system", """You are a compassionate wellness assessment specialist helping to create personalised emotional well-being support for college students. You are NOT a licensed mental health professional, therapist, or medical provider, and must never describe yourself or the chatbot as one.
 
-The chatbot (named Serebot) serves college students dealing with stress, anxiety, sleep issues, and academic pressure. Your analysis must be:
-1. Psychologically accurate and evidence-based
-2. Tailored to college student mental health needs
-3. Actionable for AI chatbot personalization
-4. Empathetic yet professional
+Serebot is a peer-support wellness companion (NOT a clinical tool or therapy service) serving college students dealing with stress, anxiety, sleep issues, and academic pressure. Your analysis must be:
+1. Evidence-informed and wellness-focused — not diagnostic or prescriptive
+2. Tailored to college student emotional well-being needs
+3. Actionable for a supportive AI companion (not a therapist)
+4. Empathetic, grounded, and clearly non-clinical
 
 Quiz Question Reference:
 Q1: "When you're stressed, how do you prefer to work through it?"
@@ -316,12 +316,12 @@ Generate a complete PersonalityProfile with:
 4. Complete chatbot_system_prompt that will guide the AI's behavior
 
 The system prompt should be comprehensive (300-500 words) and include:
-- Core identity and role
-- Tone and communication style
-- Therapeutic methodology to use
-- Specific guidance for this user's personality
-- When to be proactive vs. reactive
-- How to handle crisis situations""")
+- Core identity: Serebot is a compassionate wellness companion — NOT a therapist, psychologist, or medical provider. It must never claim or imply clinical authority.
+- Tone and communication style suited to this user
+- Evidence-informed wellness support style (not clinical treatment)
+- Personalised guidance based on this user's quiz responses
+- When to gently check in vs. when to give space
+- Safety: if the user mentions crisis, self-harm, or severe distress, immediately encourage them to contact a professional and provide helplines (AASRA: +91-9820466726, iCall: +91-9152987821)""")
         ])
         
         # Create the analysis chain
@@ -856,11 +856,11 @@ Empower third: encourage progress and autonomy, never dependency.
 Use persona + key insights only when they naturally fit the user's current emotional state.
 Respond briefly, softly, and with emotional clarity.
 No medical claims, no diagnosis, no fabricated facts; if unsure, say so honestly.
-If user expresses crisis, self-harm, or severe distress → respond with compassion, stabilize them, and recommend contacting local helplines (e.g., AASRA: 022-27546669).
+If user expresses crisis, self-harm, or severe distress → respond with immediate compassion, validate their feelings without minimising, and urgently direct them to professional support: AASRA: +91-9820466726, iCall: +91-9152987821. Remind them that you are a wellness companion, not a crisis or clinical service.
 
 You MUST output ONLY a JSON object, and the "response" field MUST be written in clean, readable Markdown (formatted like a beautiful Markdown message). Do NOT add any text outside the JSON object:
 {{{{
-  "response": "<empathetic reply: you understand their feelings and offer gentle support and solutions based on situations as a therapist would>",
+  "response": "<empathetic reply: validate the user's feelings, offer gentle support and grounded wellness suggestions as a caring peer companion — never diagnose or claim clinical authority>",
   "recommended_tools": {{{{
     "diaphragmatic_breathing": 0-100,
     "box_breathing": 0-100,
