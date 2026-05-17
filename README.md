@@ -1387,4 +1387,4 @@ This project is proprietary software created by **Avni Singhal**.
 
 ---
 
-**Built with ❤️ by Avni Singhal and Amon Sharma**
+**Built with ❤️ by Avni Singhal**
